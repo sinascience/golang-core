@@ -1,7 +1,8 @@
 package server
 
 import (
-	"log"
+	"log/slog"
+	"os"
 	"sync"
 	"time"
 	"venturo-core/configs"
@@ -12,35 +13,32 @@ import (
 
 // NewServer creates and configures a new Fiber application.
 func NewServer() (*fiber.App, *sync.WaitGroup) {
-	// Load configuration
 	config, err := configs.LoadConfig()
 	if err != nil {
-		log.Fatalf("🔥 Failed to load configuration: %v", err)
+		slog.Error("Failed to load configuration", "error", err)
+		os.Exit(1)
 	}
 
-	// Connect to the database
 	database.ConnectDB(&config)
 
-	// Initialize Fiber app
 	app := fiber.New()
 
-	// Create the single WaitGroup instance here.
 	var wg sync.WaitGroup
 
-	// Pass the WaitGroup down to the router setup.
 	registerRoutes(app, database.DB, &config, &wg)
 
 	return app, &wg
 }
 
 func GracefulShutdown(app *fiber.App, wg *sync.WaitGroup) {
-	log.Println("Gracefully shutting down...")
-	log.Println("Waiting for background processes to finish...")
-	wg.Wait() // Wait on the single, shared WaitGroup
-	log.Println("All background processes finished.")
+	slog.Info("Gracefully shutting down...")
+	slog.Info("Waiting for background processes to finish...")
+	wg.Wait()
+	slog.Info("All background processes finished.")
 
 	if err := app.ShutdownWithTimeout(5 * time.Second); err != nil {
-		log.Fatalf("Server shutdown failed: %v", err)
+		slog.Error("Server shutdown failed", "error", err)
+		os.Exit(1)
 	}
-	log.Println("Server gracefully stopped.")
+	slog.Info("Server gracefully stopped.")
 }

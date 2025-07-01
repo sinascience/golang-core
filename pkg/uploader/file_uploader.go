@@ -3,7 +3,7 @@ package uploader
 import (
 	"context"
 	"io"
-	"log"
+	"log/slog"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -20,7 +20,8 @@ type FileUploader struct {
 func NewFileUploader(storageAdapter storage.StorageAdapter, localPath string) *FileUploader {
 	// Ensure the temporary upload directory exists
 	if err := os.MkdirAll(localPath, os.ModePerm); err != nil {
-		log.Fatalf("could not create temp upload directory: %v", err)
+		slog.Error("could not create temp upload directory", "error", err)
+		os.Exit(1)
 	}
 	return &FileUploader{storageAdapter: storageAdapter, localPath: localPath}
 }
@@ -35,10 +36,10 @@ func (u *FileUploader) UploadAsync(
 	// --- Step 1: Save Locally ---
 	localFilePath := filepath.Join(u.localPath, objectName)
 	if err := saveToLocal(file, localFilePath); err != nil {
-		log.Printf("Error saving temp file %s: %v", objectName, err)
+		slog.Error("Error saving temp file", "file", objectName, "error", err)
 		return
 	}
-	log.Printf("Successfully saved temp file: %s", localFilePath)
+	slog.Info("Successfully saved temp file", "path", localFilePath)
 
 	// Execute the first callback
 	onLocalUploadSuccess()
@@ -47,19 +48,20 @@ func (u *FileUploader) UploadAsync(
 	// In a real app, you would read the local file's contents to upload.
 	// We pass the header for placeholder simplicity.
 	if _, err := u.storageAdapter.Upload(context.Background(), file); err != nil {
-		log.Printf("Error uploading to cloud for %s: %v", objectName, err)
+		slog.Error("Error uploading to cloud", "file", objectName, "error", err)
 		return // Don't continue if cloud upload fails
 	}
-	log.Printf("Successfully uploaded to cloud: %s", objectName)
+	slog.Info("Successfully uploaded to cloud", "file", objectName)
 
 	// Execute the second callback
 	onCloudUploadSuccess()
 
 	// --- Step 3: Cleanup ---
 	if err := os.Remove(localFilePath); err != nil {
-		log.Printf("Error cleaning up temp file %s: %v", objectName, err)
+		slog.Error("Error cleaning up temp file", "file", objectName, "error", err)
+	} else {
+		slog.Info("Successfully cleaned up temp file", "file", objectName)
 	}
-	log.Printf("Successfully cleaned up temp file: %s", objectName)
 }
 
 // saveToLocal is a helper function containing the file-saving logic.

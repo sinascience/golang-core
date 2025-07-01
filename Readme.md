@@ -1,50 +1,107 @@
 # Venturo Golang Core
 
-A robust, slim, and well-organized backend codebase core using Golang. This project is built with a "Fat Model" (Active Record) pattern for simplicity and speed, containerized with Docker, and includes a dedicated migration tool.
+A robust, slim, and well-organized backend codebase core using Golang. This project serves as a comprehensive template and training tool for building professional, modern web services. It is built with a "Fat Model" (Active Record) pattern for simplicity and speed, and demonstrates advanced features like asynchronous job processing, graceful shutdowns, and structured logging.
 
 ## Table of Contents
 
-  - [Codebase Structure](https://www.google.com/search?q=%23codebase-structure)
-  - [Getting Started](https://www.google.com/search?q=%23getting-started)
-      - [Prerequisites](https://www.google.com/search?q=%23prerequisites)
-      - [Configuration](https://www.google.com/search?q=%23configuration)
-      - [Running with Docker (Recommended)](https://www.google.com/search?q=%23running-with-docker-recommended)
-      - [Running Locally](https://www.google.com/search?q=%23running-locally)
-  - [Database Migrations](https://www.google.com/search?q=%23database-migrations)
-  - [Creating a New Feature](https://www.google.com/search?q=%23creating-a-new-feature)
-  - [Concurrency (Goroutines)](https://www.google.com/search?q=%23concurrency-goroutines)
-  - [Core Libraries](https://www.google.com/search?q=%23core-libraries)
+  - [✨ Key Features & Concepts](https://www.google.com/search?q=%23-key-features--concepts)
+  - [🏗️ Architectural Patterns](https://www.google.com/search?q=%23%EF%B8%8F-architectural-patterns)
+  - [📂 Codebase Structure](https://www.google.com/search?q=%23-codebase-structure)
+  - [⚙️ Environment Variables](https://www.google.com/search?q=%23%EF%B8%8F-environment-variables)
+  - [🚀 Getting Started](https://www.google.com/search?q=%23-getting-started)
+  - [🗄️ Database Migrations](https://www.google.com/search?q=%23-database-migrations)
+  - [📖 API Documentation](https://www.google.com/search?q=%23-api-documentation)
+  - [🧩 Creating a New Feature](https://www.google.com/search?q=%23-creating-a-new-feature)
+  - [📚 Core Libraries](https://www.google.com/search?q=%23-core-libraries)
 
 -----
 
-## Codebase Structure
+## ✨ Key Features & Concepts
+
+This codebase serves as a training tool and demonstrates several important backend concepts:
+
+  * **Clean Architecture:** A clear separation of concerns is enforced between different layers of the application. The request flows from a **Handler** (which deals with HTTP) to a **Service** (which contains business logic) to a **Model** (which handles database interaction). This makes the code modular and easy to maintain.
+
+  * **Authentication & Authorization:** A complete JWT-based authentication flow allows users to register and log in. Protected endpoints use a custom middleware to validate tokens. Authorization logic is implemented in the service layer to ensure users can only modify their own data.
+
+  * **Asynchronous Processing:** Long-running tasks, like file uploads, are handled in the background using **goroutines**. This provides an immediate response to the user, improving their experience. A `sync.WaitGroup` is used to track these background jobs, ensuring they can complete before the server shuts down.
+
+  * **Graceful Shutdown:** The application listens for OS signals (like `Ctrl+C`) to shut down gracefully. It waits for all background processes to finish before exiting, preventing data loss or corruption.
+
+  * **Structured Logging:** Uses Go's standard `slog` library to produce machine-readable JSON logs. This is crucial for production environments, as it allows logs to be easily searched, filtered, and analyzed by log management platforms.
+
+  * **Robust Tooling:** The entire development environment is containerized with **Docker** and `docker-compose`. For rapid development, **Air** is configured for hot-reloading, automatically recompiling and restarting the server whenever a Go file is saved.
+
+  * **Standardized API:** All API responses and validation errors follow a consistent, predictable JSON structure defined in the `pkg/response` package. This creates a professional and easy-to-use API for any client.
+
+-----
+
+## 🏗️ Architectural Patterns
+
+This project intentionally uses several common software design patterns.
+
+### \#\#\# Dependency Injection (DI)
+
+Instead of creating dependencies inside functions, we "inject" them from a higher level. For example, when the server starts, it creates the database connection and the logger, and then passes them into the services that need them. This makes our components decoupled and much easier to test.
+
+### \#\#\# Adapter Pattern
+
+To interact with third-party services (like Google Cloud Storage), we use an adapter. We first define a generic `StorageAdapter` interface, which defines the methods we need (e.g., `Upload`). Then, we create a concrete struct (`GCSAdapter`) that implements this interface. This allows us to easily swap out GCS for another service (like AWS S3) in the future by simply creating a new adapter, without changing any of our business logic.
+
+### \#\#\# Fat Model (Active Record) Pattern
+
+For simplicity, this project places database logic directly into methods on the model structs (e.g., `user.Save(db)`). This pattern, similar to Laravel's Eloquent, makes CRUD operations very straightforward and keeps the number of layers to a minimum, which is great for learning and for smaller projects.
+
+-----
+
+## 📂 Codebase Structure
 
 The project follows a clean architecture pattern designed for simplicity and scalability.
 
 ```
 /
 ├── cmd/                  # Application entry points (main packages)
-│   ├── migrate/          # The database migration tool
-│   └── server/           # The main API server
-├── configs/              # Configuration loading (.env)
-├── database/
-│   └── migrations/       # SQL migration files
+│   ├── migrate/          # The database migration tool.
+│   └── server/           # The main API server.
+├── configs/              # Configuration loading from the .env file.
+├── database/             # SQL migration files managed by golang-migrate.
+├── docs/                 # Auto-generated Swagger API documentation files.
 ├── internal/
-│   ├── database/         # Database connection and migration logic
-│   ├── handler/http/     # HTTP Handlers (Controllers)
-│   ├── model/            # Data models with database logic (Fat Model/Active Record)
-│   ├── server/           # Server setup, dependency injection, and routing
-│   └── service/          # Business logic services
+│   ├── adapter/          # Adapters for 3rd party services (e.g., GCS).
+│   ├── database/         # Database connection and migration logic.
+│   ├── handler/http/     # HTTP Handlers (Controllers). They parse requests and call services.
+│   ├── model/            # Data models and their database methods (Fat Model).
+│   └── server/           # Server setup, dependency injection, and routing.
 ├── pkg/
-│   └── utils/            # Shared utility functions (JWT, hashing, etc.)
-├── .air.toml             # Configuration for hot-reloading
-├── docker-compose.yml    # Docker service definitions
-└── Dockerfile            # Docker build instructions
+│   ├── logger/           # Structured logger configuration.
+│   ├── response/         # Standardized API response helpers.
+│   ├── uploader/         # Generic file upload utility.
+│   └── validator/        # Input validation utility.
+├── .air.toml             # Configuration for hot-reloading with Air.
+├── docker-compose.yml    # Docker service definitions for app and db.
+└── Dockerfile            # Docker build instructions.
 ```
 
 -----
 
-## Getting Started
+## ⚙️ Environment Variables
+
+Create a `.env` file in the project root and configure the following variables:
+
+| Variable         | Description                                     | Example                      |
+| ---------------- | ----------------------------------------------- | ---------------------------- |
+| `DB_HOST`        | The hostname of the MySQL database.             | `db` (for Docker), `127.0.0.1` (for local) |
+| `DB_PORT`        | The port your MySQL database is running on.     | `3306`                       |
+| `DB_USER`        | The username for the MySQL database.            | `root`                       |
+| `DB_PASSWORD`    | The password for the database user.             | `your_password`              |
+| `DB_NAME`        | The name of the database to use.                | `venturo_db`                 |
+| `JWT_SECRET_KEY` | A long, random, secret string for signing JWTs. | `super-secret-key`           |
+
+-----
+
+## 🚀 Getting Started
+
+*Instructions for both Docker and Local setups are provided.*
 
 ### Prerequisites
 
@@ -59,119 +116,92 @@ The project follows a clean architecture pattern designed for simplicity and sca
 
 ### Running with Docker (Recommended)
 
-This is the easiest way to get started. It handles both the Go application and the MySQL database.
-
-1.  **Build and Run the Services:**
-
+1.  **Update `.env` file:** Ensure `DB_HOST` is set to `db`.
+2.  **Build and Run:**
     ```bash
     docker-compose up --build
     ```
-
-    For hot-reloading during development, the setup is already configured. Changes to `.go` files will automatically restart the server inside the container.
-
-2.  **Run Migrations:** Open a new terminal and run:
-
+3.  **Run Migrations:** Open a new terminal and run:
     ```bash
-    docker-compose exec app migrate up
+    docker-compose run --rm app go run ./cmd/migrate/main.go up
     ```
 
 The API server will be available at `http://localhost:3000`.
 
-### Running Locally
+### Local Development (Without Docker)
 
-1.  **Ensure MySQL is Running:** Make sure your local MySQL server is active.
-2.  **Update `.env`:** Set `DB_HOST=127.0.0.1` or your local IP.
-3.  **Run Migrations:**
+1.  **Install `migrate` CLI:**
     ```bash
-    go run cmd/migrate/main.go up
+    go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
     ```
-4.  **Run the Server:**
+2.  **Update `.env` file:** Ensure `DB_HOST` is set to `127.0.0.1`.
+3.  **Install Go Dependencies:**
     ```bash
-    go run cmd/server/main.go
+    go mod tidy
     ```
+4.  **Run Database Migrations:**
+    ```bash
+    migrate -database 'mysql://your_user:your_password@tcp(127.0.0.1:3306)/your_db_name' -path database/migrations up
+    ```
+5.  **Run the Server:**
+    ```bash
+    go run ./cmd/server/main.go
+    ```
+
+The API server will be available at `http://localhost:3000`.
 
 -----
 
-## Database Migrations
+## 🗄️ Database Migrations
 
-The project uses a dedicated Go program to handle migrations.
-
-  * **Apply all `up` migrations:**
-    ```bash
-    # Docker
-    docker-compose exec app migrate up
-
-    # Local
-    go run cmd/migrate/main.go up
-    ```
-  * **Roll back the last migration:**
-    ```bash
-    # Docker
-    docker-compose exec app migrate down
-
-    # Local
-    go run cmd/migrate/main.go down
-    ```
-  * **Drop all tables and re-apply all migrations:**
-    ```bash
-    # Docker
-    docker-compose exec app migrate fresh
-
-    # Local
-    go run cmd/migrate/main.go fresh
-    ```
+Use the appropriate command for your chosen development environment to manage the database schema. The `fresh` command is particularly useful for resetting the database during development.
 
 -----
 
-## Creating a New Feature
+## 📖 API Documentation
 
-Here is the step-by-step pattern for adding a new feature (e.g., "Posts").
+This project uses `swaggo` to generate interactive API documentation from code comments.
 
-1.  **Create the Model (`internal/model/post_model.go`):**
-    Define the `Post` struct and add its standard CRUD methods (`Save`, `FindAll`, etc.), following the pattern in `user_model.go`.
-
-2.  **Create the Migration:**
-    Generate the migration files:
-
-    ```bash
-    # This command is run locally
-    migrate create -ext sql -dir database/migrations -seq create_posts_table
-    ```
-
-    Edit the generated `.up.sql` and `.down.sql` files with the schema for your `posts` table.
-
-3.  **Create the Service (`internal/service/post_service.go`):**
-    Create a service file to contain any business logic related to posts.
-
-4.  **Create the Handler (`internal/handler/http/post_handler.go`):**
-    Create the handler to manage HTTP requests and responses for posts. It will call the `PostService`.
-
-5.  **Register the Routes (`internal/server/routes.go`):**
-    In the `registerRoutes` function, initialize your new service and handler, then define the endpoints for your feature.
-
+1.  **Example Annotation:** Comments are added directly above handler functions like this:
     ```go
-    // In registerRoutes function...
-    postService := service.NewPostService(db)
-    postHandler := http.NewPostHandler(postService)
-
-    api.Get("/posts", postHandler.GetAll)
-    api.Post("/posts", postHandler.Create)
+    // @Summary      Get User Profile
+    // @Description  Retrieves the profile of the currently authenticated user.
+    // @Tags         User
+    // @Produce      json
+    // @Security     ApiKeyAuth
+    // @Success      200  {object}  response.ApiResponse{data=model.User}
+    // @Router       /profile [get]
+    func (h *UserHandler) GetProfile(c *fiber.Ctx) error { ... }
     ```
+2.  **Generate or Update Docs:** After changing annotations, run this command locally:
+    ```bash
+    swag init -g ./cmd/server/main.go --parseDependency --parseInternal
+    ```
+3.  **View Docs:** Start the server and navigate to:
+    **http://localhost:3000/swagger/index.html**
 
 -----
 
-## Concurrency (Goroutines)
+## 🧩 Creating a New Feature
 
-This section will be updated with guidelines for implementing concurrent tasks. The general approach will be to use goroutines for background tasks (e.g., sending emails, processing images) initiated from the service layer. Channels will be used for communication and synchronization where necessary, potentially using a `sync.WaitGroup` to manage groups of goroutines.
+Follow this pattern to add a new feature (e.g., "Comments"):
+
+1.  **Create the Migration:** Use `migrate create -ext sql ...` to generate files. Edit the SQL to define your new table.
+2.  **Run the Migration:** Apply the migration using the command for your environment.
+3.  **Create the Model:** Create `internal/model/comment_model.go`, defining the struct and its database methods.
+4.  **Create the Service:** Create `internal/service/comment_service.go` for the business logic.
+5.  **Create the Handler:** Create `internal/handler/http/comment_handler.go`. Add `validate` tags to your payload structs and use the helpers from `pkg/response` and `pkg/validator`.
+6.  **Register Routes:** In `internal/server/routes.go`, initialize your new service/handler and register the new API endpoints.
 
 -----
 
-## Core Libraries
+## 📚 Core Libraries
 
   * [**Fiber**](https://github.com/gofiber/fiber): Web framework.
   * [**GORM**](https://github.com/go-gorm/gorm): Database ORM.
   * [**golang-migrate**](https://github.com/golang-migrate/migrate): Database migrations.
+  * [**go-playground/validator**](https://github.com/go-playground/validator): Struct validation.
+  * [**swaggo**](https://github.com/swaggo/swag): API documentation generator.
+  * [**Air**](https://github.com/air-verse/air): Live-reloading for development.
   * [**go-jwt**](https://github.com/golang-jwt/jwt): JSON Web Token implementation.
   * [**Bcrypt**](https://pkg.go.dev/golang.org/x/crypto/bcrypt): Password hashing.
-  * [**Air**](https://github.com/cosmtrek/air): Live-reloading for development.
-  * [**godotenv**](https://github.com/joho/godotenv): `.env` file loading.

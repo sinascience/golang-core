@@ -3,7 +3,8 @@ package database
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"venturo-core/configs"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -20,7 +21,6 @@ var DB *gorm.DB
 func ConnectDB(config *configs.Config) {
 	var err error
 
-	// Conditionally build the credentials part of the DSN
 	credentials := config.DBUser
 	if config.DBPassword != "" {
 		credentials = fmt.Sprintf("%s:%s", config.DBUser, config.DBPassword)
@@ -35,10 +35,11 @@ func ConnectDB(config *configs.Config) {
 
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("🔥 Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("✅ Database connection successful.")
+	slog.Info("Database connection successful.")
 }
 
 // newMigrate creates a new migrate instance.
@@ -64,34 +65,40 @@ func newMigrate() (*migrate.Migrate, error) {
 func MigrateUp() {
 	m, err := newMigrate()
 	if err != nil {
-		log.Fatalf("migration failed: %v", err)
+		slog.Error("Migration failed", "error", err)
+		os.Exit(1)
 	}
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("an error occurred while migrating up: %v", err)
+		slog.Error("An error occurred while migrating up", "error", err)
+		os.Exit(1)
 	}
-	log.Println("✅ Database migrated up successfully.")
+	slog.Info("Database migrated up successfully.")
 }
 
 // MigrateDown rolls back the last applied migration.
 func MigrateDown() {
 	m, err := newMigrate()
 	if err != nil {
-		log.Fatalf("migration failed: %v", err)
+		slog.Error("Migration failed", "error", err)
+		os.Exit(1)
 	}
 	if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("an error occurred while migrating down: %v", err)
+		slog.Error("An error occurred while migrating down", "error", err)
+		os.Exit(1)
 	}
-	log.Println("✅ Database migrated down successfully.")
+	slog.Info("Database migrated down successfully.")
 }
 
 // Drop deletes everything in the database.
 func Drop() {
 	m, err := newMigrate()
 	if err != nil {
-		log.Fatalf("migration failed: %v", err)
+		slog.Error("Migration failed", "error", err)
+		os.Exit(1)
 	}
 	if err := m.Drop(); err != nil {
-		log.Fatalf("an error occurred while dropping database: %v", err)
+		slog.Error("An error occurred while dropping database", "error", err)
+		os.Exit(1)
 	}
-	log.Println("✅ Database dropped successfully.")
+	slog.Info("Database dropped successfully.")
 }

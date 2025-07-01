@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -11,6 +10,8 @@ import (
 	"venturo-core/internal/adapter/storage"
 	"venturo-core/internal/model"
 	"venturo-core/pkg/uploader"
+
+	"log/slog"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -31,7 +32,8 @@ func NewUserService(db *gorm.DB, wg *sync.WaitGroup) *UserService {
 
 	// Ensure the temporary upload directory exists
 	if err := os.MkdirAll(tempUploadPath, os.ModePerm); err != nil {
-		log.Fatalf("could not create temp upload directory: %v", err)
+		slog.Error("could not create temp upload directory", "error", err)
+		os.Exit(1)
 	}
 	return &UserService{db: db, uploader: fileUploader, wg: wg}
 }
@@ -71,14 +73,14 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, n
 		onLocalUpload := func() {
 			user.ImageStatus = "local"
 			if err := user.Save(s.db); err != nil {
-				log.Printf("Error updating status to 'local' for user %s: %v", userID, err)
+				slog.Error("Error updating status to 'local' for user", "userID", userID, "error", err)
 			}
 		}
 
 		onCloudUpload := func() {
 			user.ImageStatus = "cloud"
 			if err := user.Save(s.db); err != nil {
-				log.Printf("Error updating status to 'cloud' for user %s: %v", userID, err)
+				slog.Error("Error updating status to 'cloud' for user", "userID", userID, "error", err)
 			}
 		}
 

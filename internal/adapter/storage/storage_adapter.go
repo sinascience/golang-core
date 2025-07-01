@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"mime/multipart"
 )
 
@@ -23,11 +23,7 @@ func NewGCSAdapter(bucketName string) *GCSAdapter {
 
 // Upload simulates uploading a file to GCS.
 func (a *GCSAdapter) Upload(ctx context.Context, file *multipart.FileHeader) (string, error) {
-	// For now, this is a placeholder. It just logs the action.
-	// In a real implementation, this would contain the GCS upload logic.
-	log.Printf("Simulating upload of file '%s' to GCS bucket '%s'.", file.Filename, a.bucketName)
-
-	// We return a dummy URL and a nil error to simulate success.
+	slog.Info("Simulating upload of file to GCS bucket", "file", file.Filename, "bucket", a.bucketName)
 	dummyURL := "https://storage.googleapis.com/" + a.bucketName + "/" + file.Filename
 	return dummyURL, nil
 }

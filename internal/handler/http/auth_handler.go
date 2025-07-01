@@ -32,6 +32,16 @@ type LoginPayload struct {
 }
 
 // Register is the handler for the user registration endpoint.
+// @Summary      Register a new user
+// @Description  Creates a new user account with the provided details.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      RegisterPayload     true  "User Registration Payload"
+// @Success      201      {object}  response.ApiResponse "User registered successfully"
+// @Failure      400      {object}  response.ApiResponse "Bad Request - Invalid input"
+// @Failure      500      {object}  response.ApiResponse "Internal Server Error"
+// @Router       /register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	payload := new(RegisterPayload)
 
@@ -56,6 +66,16 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 }
 
 // Login is the handler for the user login endpoint.
+// @Summary      Log in a user
+// @Description  Authenticates a user and returns a JWT token.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      LoginPayload        true  "User Login Payload"
+// @Success      200      {object}  response.ApiResponse "Successfully logged in"
+// @Failure      400      {object}  response.ApiResponse "Bad Request - Cannot parse JSON"
+// @Failure      401      {object}  response.ApiResponse "Unauthorized - Invalid credentials"
+// @Router       /login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	payload := new(LoginPayload)
 

@@ -8,11 +8,13 @@ import (
 	"venturo-core/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"gorm.io/gorm"
 )
 
 func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.WaitGroup) {
 	app.Static("/public", "./public")
+	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {

@@ -1,26 +1,26 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"venturo-core/configs"
 	"venturo-core/internal/database"
 )
 
 func main() {
-	// Load configuration
+	slog.Info("Migration tool started")
+
 	config, err := configs.LoadConfig()
 	if err != nil {
-		log.Fatalf("🔥 Failed to load configuration: %v", err)
+		slog.Error("Failed to load configuration", "error", err)
+		os.Exit(1)
 	}
 
-	// Connect to the database
 	database.ConnectDB(&config)
 
-	// Check for command-line arguments
 	if len(os.Args) < 2 {
-		log.Fatal("Please provide an argument: up, down, or fresh")
-		return
+		slog.Error("Please provide an argument: up, down, or fresh")
+		os.Exit(1)
 	}
 
 	command := os.Args[1]
@@ -34,6 +34,7 @@ func main() {
 		database.Drop()
 		database.MigrateUp()
 	default:
-		log.Fatalf("Unknown command: %s. Please use 'up', 'down', or 'fresh'.", command)
+		slog.Error("Unknown command", "command", command)
+		os.Exit(1)
 	}
 }

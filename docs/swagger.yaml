@@ -1,0 +1,373 @@
+basePath: /api/v1
+definitions:
+  http.CreatePostPayload:
+    properties:
+      body:
+        type: string
+      title:
+        minLength: 5
+        type: string
+    required:
+    - title
+    type: object
+  http.LoginPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  http.RegisterPayload:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 2
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  model.Post:
+    properties:
+      author:
+        allOf:
+        - $ref: '#/definitions/model.User'
+        description: Define the relationship to the User model
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  model.User:
+    properties:
+      avatar_url:
+        description: New field
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      image_status:
+        description: New field
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  response.ApiResponse:
+    properties:
+      data: {}
+      errors: {}
+      meta:
+        $ref: '#/definitions/response.Meta'
+      status_code:
+        type: integer
+    type: object
+  response.Meta:
+    properties:
+      current_page:
+        type: integer
+      per_page:
+        type: integer
+      total_pages:
+        type: integer
+      total_records:
+        type: integer
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: sina4science@gmail.com
+    name: Anis Fajar Fakhruddin
+    url: https://discord.com/users/858389159555497994
+  description: This is the API documentation for the Venturo Golang Core project.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Venturo Golang Core API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token.
+      parameters:
+      - description: User Login Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.LoginPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged in
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "400":
+          description: Bad Request - Cannot parse JSON
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "401":
+          description: Unauthorized - Invalid credentials
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: Log in a user
+      tags:
+      - Authentication
+  /posts:
+    get:
+      description: Retrieves a paginated list of all posts.
+      parameters:
+      - default: 1
+        description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved posts
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Post'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: Get all posts
+      tags:
+      - Posts
+    post:
+      consumes:
+      - application/json
+      description: Creates a new post for the authenticated user.
+      parameters:
+      - description: Post Creation Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreatePostPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created post
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Post'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new post
+      tags:
+      - Posts
+  /posts/{id}:
+    delete:
+      description: Deletes a post. Only the author can delete their post.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted post
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a post
+      tags:
+      - Posts
+    get:
+      description: Retrieves a single post by its unique ID.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved post
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Post'
+              type: object
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: Get a single post
+      tags:
+      - Posts
+    put:
+      consumes:
+      - application/json
+      description: Updates a post. Only the author can update their post.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Post Update Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreatePostPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated post
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Post'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update a post
+      tags:
+      - Posts
+  /profile:
+    get:
+      description: Retrieves the profile of the currently authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved profile
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get User Profile
+      tags:
+      - User
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account with the provided details.
+      parameters:
+      - description: User Registration Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.RegisterPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "400":
+          description: Bad Request - Invalid input
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: Register a new user
+      tags:
+      - Authentication
+securityDefinitions:
+  ApiKeyAuth:
+    description: Type "Bearer" followed by a space and a JWT.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

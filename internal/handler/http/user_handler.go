@@ -20,6 +20,14 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 // GetProfile is the handler for the get user profile endpoint.
+// @Summary      Get User Profile
+// @Description  Retrieves the profile of the currently authenticated user.
+// @Tags         User
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Success      200  {object}  response.ApiResponse{data=model.User} "Successfully retrieved profile"
+// @Failure      401  {object}  response.ApiResponse "Unauthorized"
+// @Router       /profile [get]
 func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	// Retrieve the user ID from the locals, set by the auth middleware
 	userID, ok := c.Locals("current_user_id").(uuid.UUID)
@@ -36,7 +44,19 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	return response.Success(c, fiber.StatusOK, user)
 }
 
-// UpdateProfilePayload defines the expected JSON for updating a profile.
+// UpdateProfile correctly handles both form values and file uploads with validation.
+// @Summary      Update User Profile
+// @Description  Updates the name and/or avatar of the currently authenticated user.
+// @Tags         User
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        name    formData  string  false  "New name for the user"
+// @Param        avatar  formData  file    false  "New avatar image file"
+// @Success      200  {object}  response.ApiResponse{data=model.User} "Successfully updated profile"
+// @Failure      400  {object}  response.ApiResponse "Bad Request"
+// @Failure      401  {object}  response.ApiResponse "Unauthorized"
+// @Router       /profile [put]
 type UpdateProfilePayload struct {
 	Name string `json:"name" validate:"required,min=2"`
 }
@@ -49,16 +69,13 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
-	// 1. Populate payload from form values for validation
 	payload := new(UpdateProfilePayload)
 	payload.Name = c.FormValue("name")
 
-	// 2. Validate the populated struct
 	if errs := validator.ValidateStruct(payload); errs != nil {
 		return response.ValidationError(c, errs)
 	}
 
-	// 3. Handle the file separately
 	file, err := c.FormFile("avatar")
 	if err != nil {
 		if err.Error() != "there is no uploaded file associated with the given key" {
@@ -67,7 +84,6 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		file = nil
 	}
 
-	// 4. Call the service with all parts
 	updatedUser, err := h.userService.UpdateUserProfile(c.Context(), userID, payload.Name, file)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, err)

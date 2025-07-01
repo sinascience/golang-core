@@ -43,6 +43,17 @@ type CreatePostPayload struct {
 }
 
 // CreatePost is the handler for creating a new post.
+// @Summary      Create a new post
+// @Description  Creates a new post for the authenticated user.
+// @Tags         Posts
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        payload  body      CreatePostPayload      true  "Post Creation Payload"
+// @Success      201      {object}  response.ApiResponse{data=model.Post} "Successfully created post"
+// @Failure      400      {object}  response.ApiResponse "Bad Request"
+// @Failure      401      {object}  response.ApiResponse "Unauthorized"
+// @Router       /posts [post]
 func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 	// Get user ID from the JWT middleware
 	userID, ok := c.Locals("current_user_id").(uuid.UUID)
@@ -68,6 +79,15 @@ func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 }
 
 // GetAllPosts now handles pagination and returns a structured response.
+// @Summary      Get all posts
+// @Description  Retrieves a paginated list of all posts.
+// @Tags         Posts
+// @Produce      json
+// @Param        page   query     int  false  "Page number for pagination" default(1)
+// @Param        limit  query     int  false  "Number of items per page" default(10)
+// @Success      200    {object}  response.ApiResponse{data=[]model.Post} "Successfully retrieved posts"
+// @Failure      500    {object}  response.ApiResponse "Internal Server Error"
+// @Router       /posts [get]
 func (h *PostHandler) GetAllPosts(c *fiber.Ctx) error {
 	// 1. Parse query parameters for pagination
 	page, err := strconv.Atoi(c.Query("page", "1"))
@@ -93,6 +113,14 @@ func (h *PostHandler) GetAllPosts(c *fiber.Ctx) error {
 }
 
 // GetPostByID is the handler for retrieving a single post by its ID.
+// @Summary      Get a single post
+// @Description  Retrieves a single post by its unique ID.
+// @Tags         Posts
+// @Produce      json
+// @Param        id   path      string  true  "Post ID"
+// @Success      200  {object}  response.ApiResponse{data=model.Post} "Successfully retrieved post"
+// @Failure      404  {object}  response.ApiResponse "Post not found"
+// @Router       /posts/{id} [get]
 func (h *PostHandler) GetPostByID(c *fiber.Ctx) error {
 	// Get ID from URL parameter
 	idParam := c.Params("id")
@@ -110,6 +138,17 @@ func (h *PostHandler) GetPostByID(c *fiber.Ctx) error {
 }
 
 // DeletePost is the handler for deleting a post.
+// @Summary      Delete a post
+// @Description  Deletes a post. Only the author can delete their post.
+// @Tags         Posts
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id   path      string  true  "Post ID"
+// @Success      200  {object}  response.ApiResponse "Successfully deleted post"
+// @Failure      401      {object}  response.ApiResponse "Unauthorized"
+// @Failure      403      {object}  response.ApiResponse "Forbidden"
+// @Failure      404      {object}  response.ApiResponse "Post not found"
+// @Router       /posts/{id} [delete]
 func (h *PostHandler) DeletePost(c *fiber.Ctx) error {
 	// Get post ID from URL parameter
 	postID, err := uuid.Parse(c.Params("id"))
@@ -140,6 +179,19 @@ func (h *PostHandler) DeletePost(c *fiber.Ctx) error {
 }
 
 // UpdatePost is the handler for updating a post.
+// @Summary      Update a post
+// @Description  Updates a post. Only the author can update their post.
+// @Tags         Posts
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id       path      string               true  "Post ID"
+// @Param        payload  body      CreatePostPayload    true  "Post Update Payload"
+// @Success      200      {object}  response.ApiResponse{data=model.Post} "Successfully updated post"
+// @Failure      401      {object}  response.ApiResponse "Unauthorized"
+// @Failure      403      {object}  response.ApiResponse "Forbidden"
+// @Failure      404      {object}  response.ApiResponse "Post not found"
+// @Router       /posts/{id} [put]
 func (h *PostHandler) UpdatePost(c *fiber.Ctx) error {
 	// Get post ID from URL parameter
 	postID, err := uuid.Parse(c.Params("id"))
