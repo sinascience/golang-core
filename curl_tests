@@ -1,0 +1,13 @@
+// Other
+curl http://localhost:3000/health
+
+// AUTH
+curl -X POST -H "Content-Type: application/json" -d '{"name": "Venturo User","email": "user@venturo.dev","password": "strongpassword123"}' http://localhost:3000/api/v1/register
+
+curl -X POST -H "Content-Type: application/json" -d '{"email":"user@venturo.dev","password":"strongpassword123"}' http://localhost:3000/api/v1/login
+
+curl -X GET -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:3000/api/v1/profile
+
+curl -X PUT -H "Authorization: Bearer YOUR_JWT_TOKEN" -H "Content-Type: application/json" -d '{"name": "Venturo User Updated"}' http://localhost:3000/api/v1/profile
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTE2MTM0NjYsImlhdCI6MTc1MTM1NDI2NiwidXNlcl9pZCI6IjY5MjQxNzFkLTEwN2MtNDRkYi1iNTFiLTQ4MTY3MDQwM2U4MiJ9.3IXk8eBM_JFgROmth5Bm7IbnmIzw-S-mdmlJKZaxTCQ
