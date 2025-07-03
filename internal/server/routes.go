@@ -34,10 +34,18 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	userService := service.NewUserService(db, wg)
 	postService := service.NewPostService(db)
 
+	// Add our new service
+	transactionService := service.NewTransactionService(db) // <-- ADD THIS
+
+
 	// --- Setup handlers ---
 	authHandler := http.NewAuthHandler(authService)
 	userHandler := http.NewUserHandler(userService)
 	postHandler := http.NewPostHandler(postService)
+
+	// Add our new handler
+	transactionHandler := http.NewTransactionHandler(transactionService) // <-- ADD THIS
+
 
 	// --- Auth routes ---
 	api.Post("/register", authHandler.Register)
@@ -54,4 +62,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	postRoutes.Post("/", authMiddleware, postHandler.CreatePost)      // Protected
 	postRoutes.Put("/:id", authMiddleware, postHandler.UpdatePost)    // Protected
 	postRoutes.Delete("/:id", authMiddleware, postHandler.DeletePost) // Protected
+
+	// --- Transaction routes ---
+	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction) // <-- ADD THIS
 }
