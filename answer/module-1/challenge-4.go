@@ -28,7 +28,7 @@ func GetMonthName(m Month) string {
 		"January", "February", "March", "April", "May", "June",
 		"July", "August", "September", "October", "November", "December",
 	}
-	if int(m) < 1 || int(m) >= len(MonthNames) {
+	if int(m) < 1 || int(m) >= (len(MonthNames)+1) {
 		return "Unknown Month"
 	}
 	return MonthNames[m-1]
