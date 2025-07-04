@@ -35,7 +35,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	postService := service.NewPostService(db)
 
 	// Add our new service
-	transactionService := service.NewTransactionService(db) // <-- ADD THIS
+	transactionService := service.NewTransactionService(db, wg) // <-- ADD THIS
 
 
 	// --- Setup handlers ---
@@ -65,4 +65,5 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// --- Transaction routes ---
 	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction) // <-- ADD THIS
+	api.Post("/transactions/:id/pay", authMiddleware, transactionHandler.MarkAsPaid) // <-- ADD THIS
 }
