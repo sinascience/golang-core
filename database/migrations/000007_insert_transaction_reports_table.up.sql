@@ -1,0 +1,1 @@
+INSERT INTO transaction_reports (id) VALUES (1);

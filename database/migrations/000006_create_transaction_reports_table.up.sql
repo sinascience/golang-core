@@ -7,6 +7,3 @@ CREATE TABLE transaction_reports (
     category_summary JSON,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
--- Insert the single row that we will always update.
-INSERT INTO transaction_reports (id) VALUES (1);
