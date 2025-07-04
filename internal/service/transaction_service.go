@@ -131,7 +131,8 @@ func (s *TransactionService) MarkAsPaid(ctx context.Context, transactionID uuid.
 			}
 
 			// --- Perform Aggregation Queries ---
-			var totalRevenue, totalPaidTransactions, totalUniqueCustomers uint64
+			var totalRevenue, totalUniqueCustomers uint64
+			var totalPaidTransactions int64
 			tx.Model(&model.Transaction{}).Where("is_paid = ?", true).Select("COALESCE(SUM(total), 0)").Row().Scan(&totalRevenue)
 			tx.Model(&model.Transaction{}).Where("is_paid = ?", true).Count(&totalPaidTransactions)
 			tx.Model(&model.Transaction{}).Where("is_paid = ?", true).Select("COUNT(DISTINCT user_id)").Row().Scan(&totalUniqueCustomers)
@@ -150,7 +151,7 @@ func (s *TransactionService) MarkAsPaid(ctx context.Context, transactionID uuid.
 
 			// Update the report struct with the new values
 			report.TotalRevenue = totalRevenue
-			report.TotalPaidTransactions = totalPaidTransactions
+			report.TotalPaidTransactions = uint64(totalPaidTransactions)
 			report.TotalUniqueCustomers = totalUniqueCustomers
 			report.TotalProductsSold = totalProductsSold
 			report.CategorySummary = make(model.CategorySummary)
