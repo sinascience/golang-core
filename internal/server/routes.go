@@ -59,6 +59,5 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// --- Transaction Post Routes ---
 	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction)
-	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction)
 	api.Post("/transactions/:id/pay", authMiddleware, transactionHandler.MarkAsPaid)
 }
