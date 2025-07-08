@@ -18,7 +18,20 @@ func NewProductHandler(s *service.ProductService) *ProductHandler {
 }
 
 // CreateProduct handles the multipart/form-data request to create a product.
-// ... (Add Swagger annotations here) ...
+//
+// @Summary Create a new product
+// @Description Create a new product with name, price, stock, and optional image.
+// @Tags Products
+// @Accept multipart/form-data
+// @Produce json
+// @Param name formData string true "Product name"
+// @Param price formData int true "Product price"
+// @Param stock formData int true "Product stock"
+// @Param image formData file false "Product image"
+// @Success 201 {object} response.SuccessResponse{data=service.Product}
+// @Failure 400 {object} response.ErrorResponse "Invalid input format"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /products [post]
 func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 	price, err := strconv.Atoi(c.FormValue("price"))
 	if err != nil {
