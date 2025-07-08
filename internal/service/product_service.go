@@ -18,12 +18,13 @@ import (
 type ProductService struct {
 	db             *gorm.DB
 	wg             *sync.WaitGroup
+	localAdapter   storage.LocalUploaderAdapter
 	storageAdapter storage.StorageAdapter
 }
 
 // NewProductService creates a new product service.
-func NewProductService(db *gorm.DB, wg *sync.WaitGroup, storageAdapter storage.StorageAdapter) *ProductService {
-	return &ProductService{db: db, wg: wg, storageAdapter: storageAdapter}
+func NewProductService(db *gorm.DB, wg *sync.WaitGroup, localAdapter *storage.LocalUploaderAdapter, storageAdapter storage.StorageAdapter) *ProductService {
+	return &ProductService{db: db, wg: wg, localAdapter: *localAdapter, storageAdapter: storageAdapter}
 }
 
 // CreateProductInput is the data needed to create a new product.
@@ -69,6 +70,7 @@ func (s *ProductService) uploadProductImage(productID uuid.UUID, file *multipart
 	bgCtx := context.Background()
 
 	// 1. Upload the file.
+	localURL, err := s.localAdapter.Upload(bgCtx, file, objectName)
 	publicURL, err := s.storageAdapter.Upload(bgCtx, file, objectName)
 	if err != nil {
 		slog.Error("Failed to upload product image", "productID", productID, "error", err)
@@ -78,7 +80,7 @@ func (s *ProductService) uploadProductImage(productID uuid.UUID, file *multipart
 	}
 
 	// 2. Update status to 'done' on success.
-	slog.Info("Successfully uploaded product image", "productID", productID, "url", publicURL)
+	slog.Info("Successfully uploaded product image", "productID", productID, "url %s & %s", publicURL, localURL)
 	s.updateImageStatus(productID, "done", publicURL)
 }
 

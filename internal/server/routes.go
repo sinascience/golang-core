@@ -26,8 +26,10 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	})
 
 	api := app.Group("/api/v1")
+
 	// --- Setup Adapters ---
 	localUploader := storage.NewLocalUploaderAdapter("./public/uploads")
+	cloudUploader := storage.NewGCSAdapter("image")
 
 	// --- Setups ---
 	authMiddleware := middleware.NewAuthMiddleware(conf.JWTSecretKey)
@@ -37,7 +39,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	userService := service.NewUserService(db, wg)
 	postService := service.NewPostService(db)
 	transactionService := service.NewTransactionService(db, wg)
-	productService := service.NewProductService(db, wg, localUploader)
+	productService := service.NewProductService(db, wg, localUploader, cloudUploader)
 
 	// --- Setup handlers ---
 	authHandler := http.NewAuthHandler(authService)
