@@ -3,6 +3,7 @@ package server
 import (
 	"sync"
 	"venturo-core/configs"
+	"venturo-core/internal/adapter/storage"
 	"venturo-core/internal/handler/http"
 	"venturo-core/internal/middleware"
 	"venturo-core/internal/service"
@@ -25,6 +26,8 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	})
 
 	api := app.Group("/api/v1")
+	// --- Setup Adapters ---
+	localUploader := storage.NewLocalUploaderAdapter("./public/uploads")
 
 	// --- Setups ---
 	authMiddleware := middleware.NewAuthMiddleware(conf.JWTSecretKey)
@@ -34,12 +37,14 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	userService := service.NewUserService(db, wg)
 	postService := service.NewPostService(db)
 	transactionService := service.NewTransactionService(db, wg)
+	productService := service.NewProductService(db, wg, localUploader)
 
 	// --- Setup handlers ---
 	authHandler := http.NewAuthHandler(authService)
 	userHandler := http.NewUserHandler(userService)
 	postHandler := http.NewPostHandler(postService)
 	transactionHandler := http.NewTransactionHandler(transactionService)
+	productHandler := http.NewProductHandler(productService)
 
 	// --- Auth routes ---
 	api.Post("/register", authHandler.Register)
@@ -60,4 +65,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	// --- Transaction Post Routes ---
 	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction)
 	api.Post("/transactions/:id/pay", authMiddleware, transactionHandler.MarkAsPaid)
+
+	// --- Product routes ---
+	api.Post("/products", authMiddleware, productHandler.CreateProduct)
 }
