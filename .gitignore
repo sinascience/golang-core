@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+#Artisan Experiments
+artisan/
+
 # Test binary, build output
 *.test
 *.out
