@@ -8,7 +8,7 @@ import (
 
 // StorageAdapter defines the interface for any cloud storage service.
 type StorageAdapter interface {
-	Upload(ctx context.Context, file *multipart.FileHeader) (string, error)
+	Upload(ctx context.Context, file *multipart.FileHeader, objectName string) (string, error)
 }
 
 // GCSAdapter is the placeholder implementation for Google Cloud Storage.
@@ -22,7 +22,7 @@ func NewGCSAdapter(bucketName string) *GCSAdapter {
 }
 
 // Upload simulates uploading a file to GCS.
-func (a *GCSAdapter) Upload(ctx context.Context, file *multipart.FileHeader) (string, error) {
+func (a *GCSAdapter) Upload(ctx context.Context, file *multipart.FileHeader, objectName string) (string, error) {
 	slog.Info("Simulating upload of file to GCS bucket", "file", file.Filename, "bucket", a.bucketName)
 	dummyURL := "https://storage.googleapis.com/" + a.bucketName + "/" + file.Filename
 	return dummyURL, nil

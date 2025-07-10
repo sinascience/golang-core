@@ -6,6 +6,7 @@ import (
 	"venturo-core/internal/handler/http"
 	"venturo-core/internal/middleware"
 	"venturo-core/internal/service"
+	"venturo-core/internal/adapter/storage"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
@@ -29,6 +30,9 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	// --- Setups ---
 	authMiddleware := middleware.NewAuthMiddleware(conf.JWTSecretKey)
 
+	// --- Setup Adapters ---
+	localUploader := storage.NewLocalUploaderAdapter("./public/uploads")
+
 	// --- Setup services ---
 	authService := service.NewAuthService(db, conf)
 	userService := service.NewUserService(db, wg)
@@ -36,15 +40,19 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// Add our new service
 	transactionService := service.NewTransactionService(db, wg) // <-- ADD THIS
-
+	// Inject all three dependencies into the ProductService.
+	productService := service.NewProductService(db, wg, localUploader)
 
 	// --- Setup handlers ---
 	authHandler := http.NewAuthHandler(authService)
 	userHandler := http.NewUserHandler(userService)
 	postHandler := http.NewPostHandler(postService)
+	transactionHandler := http.NewTransactionHandler(transactionService)
+	productHandler := http.NewProductHandler(productService)
+
 
 	// Add our new handler
-	transactionHandler := http.NewTransactionHandler(transactionService) // <-- ADD THIS
+	// transactionHandler := http.NewTransactionHandler(transactionService) // <-- ADD THIS
 
 
 	// --- Auth routes ---
@@ -66,4 +74,6 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	// --- Transaction routes ---
 	api.Post("/transactions", authMiddleware, transactionHandler.CreateTransaction) // <-- ADD THIS
 	api.Post("/transactions/:id/pay", authMiddleware, transactionHandler.MarkAsPaid) // <-- ADD THIS
+	// --- Product routes ---
+	api.Post("/products", authMiddleware, productHandler.CreateProduct)
 }

@@ -46,4 +46,5 @@ func main() {
 	wg.Wait()           // Wait for the report processor to finish.
 
 	fmt.Printf("Final Report - Total Sales: $%d\n", report.TotalSales) // Expected: Final Report - Total Sales: $1600
+	
 }
