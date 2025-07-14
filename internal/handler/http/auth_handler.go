@@ -85,17 +85,17 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, refresh, userId, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	result, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
-	err = h.refreshTokenService.Store(c.Context(), userId, refresh)
+	err = h.refreshTokenService.Store(c.Context(), result.UserID, result.Refresh)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, err)
 	}
 
-	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token, "refresh": refresh})
+	return response.Success(c, fiber.StatusOK, fiber.Map{"token": result.Token, "refresh": result.Refresh})
 }
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	refreshToken := c.Locals("refreshToken").(string)

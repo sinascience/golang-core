@@ -16,6 +16,11 @@ type AuthService struct {
 	db   *gorm.DB
 	conf *configs.Config
 }
+type LoginInformation struct {
+	UserID  uuid.UUID
+	Token   string
+	Refresh string
+}
 
 // NewAuthService creates a new auth service.
 func NewAuthService(db *gorm.DB, conf *configs.Config) *AuthService {
@@ -52,29 +57,33 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 }
 
 // Login validates user credentials and returns a JWT.
-func (s *AuthService) Login(ctx context.Context, email, password string) (string, string, uuid.UUID, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (*LoginInformation, error) {
 	// Find user by email
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
-		return "", "", uuid.Nil, errors.New("invalid credentials")
+		return nil, errors.New("invalid credentials")
 	}
 
 	// Compare password with the hash
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return "", "", uuid.Nil, errors.New("invalid credentials")
+		return nil, errors.New("invalid credentials")
 	}
 
 	// Generate JWT
 	token, err := utils.GenerateToken(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", "", uuid.Nil, errors.New("could not generate token")
+		return nil, errors.New("could not generate token")
 	}
 
 	refresh, err := utils.GenerateRefresh(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", "", uuid.Nil, errors.New("could not generate token")
+		return nil, errors.New("could not generate token")
 	}
 
-	return token, refresh, user.ID, nil
+	return &LoginInformation{
+		UserID:  user.ID,
+		Token:   token,
+		Refresh: refresh,
+	}, nil
 }
