@@ -87,17 +87,12 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	token, refreshToken, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
-	accessToken, err := h.authService.RefreshToken(c.Context(), payload.Email)
-	if err != nil {
-		return response.Error(c, fiber.StatusUnauthorized, err)
-	}
-
-	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token, "refresh_token": accessToken})
+	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token, "refresh_token": refreshToken})
 }
 
 // Refresh is the handler for the user refresh token endpoint.

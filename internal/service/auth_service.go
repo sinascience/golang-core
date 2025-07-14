@@ -6,7 +6,6 @@ import (
 	"venturo-core/configs"
 	"venturo-core/internal/model"
 	"venturo-core/pkg/utils"
-	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 
 
@@ -54,76 +53,63 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 }
 
 // Login validates user credentials and returns a JWT.
-func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (string, string, error) {
 	// Find user by email
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	// Compare password with the hash
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	// Generate JWT
 	token, err := utils.GenerateToken(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", errors.New("could not generate token")
+		return "", "", errors.New("could not generate token")
 	}
 
-	return token, nil
-}
-
-// RefreshToken generates a new JWT for a user.
-func (s *AuthService) RefreshToken(ctx context.Context, email string) (string, error) {
-	// Find user by email
-	var user model.User
-
-	// Generate JWT
-	accessToken, err := utils.GenerateRefreshToken(user.ID, s.conf.JWTSecretKey)
+	refreshToken, err := utils.GenerateRefreshToken(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", errors.New("could not generate token")
+		return "", "", errors.New("could not generate refresh token")
 	}
 
-	return accessToken, nil
+	return token, refreshToken, nil
 }
 
 // New Access Token from Refresh Token
-func (s *AuthService) NewAccessToken(c *fiber.Ctx, secretKey string) (string, error) {
-	if secretKey == "" {
-		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid refresh token"})
-	}
-	
+func (s *AuthService) RefreshToken(c context.Context, refresh_token string) (string, error) {
 	// Parse and validate the token
-	token, err := jwt.Parse(secretKey, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(refresh_token, func(token *jwt.Token) (interface{}, error) {
 		// Validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fiber.NewError(fiber.StatusUnauthorized, "Unexpected signing method")
+			return nil, errors.New("unexpected signing method")
 		}
-		return []byte(secretKey), nil
+		return []byte(s.conf.JWTSecretKey), nil
 	})
 
 	if err != nil || !token.Valid {
-		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired JWT"})
+		return "", errors.New("invalid token")
 	}
 
 	// Get claims and extract user ID
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid JWT claims"})
+		return "", errors.New("invalid jwt claims")
 	}
 
 	userId, ok := claims["user_id"].(string)
 	if !ok {
-		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID in token"})
+		return "", errors.New("invalid user ID")
 	}
 
 	// Generate JWT new access token
 	accessToken, err := utils.GenerateNewToken(userId, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"could not generate token"})
+		return "", errors.New("could not generate token")
 	}
 
 	return accessToken, nil
