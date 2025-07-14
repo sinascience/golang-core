@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"strings"
+	"venturo-core/internal/model"
+	"venturo-core/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // NewAuthMiddleware creates a new middleware for JWT authentication.
@@ -61,8 +64,10 @@ func NewAuthMiddleware(secretKey string) fiber.Handler {
 	}
 }
 
-func NewRefreshMiddleware(secretKey string) fiber.Handler {
+func NewRefreshMiddleware(db *gorm.DB, secretKey string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		var refreshModel model.RefreshToken
+
 		// Get the Authorization header
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
@@ -113,9 +118,13 @@ func NewRefreshMiddleware(secretKey string) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID format"})
 		}
 
+		err = refreshModel.FindByHashedToken(db, service.HashRefreshToken(tokenString))
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+		}
 		// Store the user ID in the request context for the next handler to use
 		c.Locals("refresh_user_id", userID)
-		c.Locals("refreshToken", tokenString)
+		c.Locals("refreshID", refreshModel.ID)
 
 		// Continue to the next handler
 		return c.Next()

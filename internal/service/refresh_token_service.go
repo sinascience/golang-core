@@ -24,13 +24,8 @@ func NewRefreshTokenService(db *gorm.DB, conf *configs.Config) *RefreshTokenServ
 	return &RefreshTokenService{db: db, conf: conf}
 }
 
-func (s *RefreshTokenService) Refresh(ctx context.Context, userID uuid.UUID, refreshToken string) (string, string, error) {
+func (s *RefreshTokenService) Refresh(ctx context.Context, userID uuid.UUID, refreshID uuid.UUID) (string, string, error) {
 	var refreshModel model.RefreshToken
-
-	err := refreshModel.FindByHashedToken(s.db, HashRefreshToken(refreshToken))
-	if err != nil {
-		return "", "", errors.New("refresh token is not exist")
-	}
 	token, err := utils.GenerateToken(userID, s.conf.JWTSecretKey)
 	if err != nil {
 		return "", "", errors.New("could not generate token")
@@ -40,8 +35,7 @@ func (s *RefreshTokenService) Refresh(ctx context.Context, userID uuid.UUID, ref
 	if err != nil {
 		return "", "", errors.New("could not generate token")
 	}
-
-	err = refreshModel.Delete(s.db, refreshModel.ID)
+	err = refreshModel.Delete(s.db, refreshID)
 	if err != nil {
 		slog.Error("Failed to delete refresh token", "userId", userID, "error", err)
 		return "", "", errors.New("could not refresh token")

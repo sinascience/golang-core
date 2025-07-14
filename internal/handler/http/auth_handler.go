@@ -98,13 +98,16 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	return response.Success(c, fiber.StatusOK, fiber.Map{"token": result.Token, "refresh": result.Refresh})
 }
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
-	refreshToken := c.Locals("refreshToken").(string)
+	refreshID, ok := c.Locals("refreshID").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, errors.New("unauthorized"))
+	}
 	userID, ok := c.Locals("refresh_user_id").(uuid.UUID)
 	if !ok {
 		return response.Error(c, fiber.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
-	token, refresh, err := h.refreshTokenService.Refresh(c.Context(), userID, refreshToken)
+	token, refresh, err := h.refreshTokenService.Refresh(c.Context(), userID, refreshID)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}

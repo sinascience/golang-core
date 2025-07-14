@@ -33,7 +33,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// --- Setups ---
 	authMiddleware := middleware.NewAuthMiddleware(conf.JWTSecretKey)
-	refreshMiddleware := middleware.NewRefreshMiddleware(conf.JWTSecretKey)
+	refreshMiddleware := middleware.NewRefreshMiddleware(db, conf.JWTSecretKey)
 
 	// --- Setup services ---
 	authService := service.NewAuthService(db, conf)
