@@ -12,12 +12,13 @@ import (
 
 // AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
-	authService *service.AuthService
+	authService         *service.AuthService
+	refreshTokenService *service.RefreshTokenService
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService *service.AuthService, refreshTokenService *service.RefreshTokenService) *AuthHandler {
+	return &AuthHandler{authService: authService, refreshTokenService: refreshTokenService}
 }
 
 // RegisterPayload defines the expected JSON for registration.
@@ -84,22 +85,33 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, refresh, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	token, refresh, userId, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	err = h.refreshTokenService.Store(c.Context(), userId, refresh)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, err)
 	}
 
 	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token, "refresh": refresh})
 }
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	refreshToken := c.Locals("refreshToken").(string)
 	userID, ok := c.Locals("refresh_user_id").(uuid.UUID)
 	if !ok {
 		return response.Error(c, fiber.StatusUnauthorized, errors.New("unauthorized"))
 	}
 
-	token, refresh, err := h.authService.Refresh(c.Context(), userID)
+	token, refresh, err := h.refreshTokenService.Refresh(c.Context(), userID, refreshToken)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	err = h.refreshTokenService.Store(c.Context(), userID, refresh)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, err)
 	}
 
 	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token, "refresh": refresh})

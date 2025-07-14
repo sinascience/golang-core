@@ -37,13 +37,14 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// --- Setup services ---
 	authService := service.NewAuthService(db, conf)
+	refreshTokenService := service.NewRefreshTokenService(db, conf)
 	userService := service.NewUserService(db, wg)
 	postService := service.NewPostService(db)
 	transactionService := service.NewTransactionService(db, wg)
 	productService := service.NewProductService(db, wg, localUploader, cloudUploader)
 
 	// --- Setup handlers ---
-	authHandler := http.NewAuthHandler(authService)
+	authHandler := http.NewAuthHandler(authService, refreshTokenService)
 	userHandler := http.NewUserHandler(userService)
 	postHandler := http.NewPostHandler(postService)
 	transactionHandler := http.NewTransactionHandler(transactionService)

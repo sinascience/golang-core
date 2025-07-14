@@ -115,6 +115,7 @@ func NewRefreshMiddleware(secretKey string) fiber.Handler {
 
 		// Store the user ID in the request context for the next handler to use
 		c.Locals("refresh_user_id", userID)
+		c.Locals("refreshToken", tokenString)
 
 		// Continue to the next handler
 		return c.Next()
