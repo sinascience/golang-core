@@ -2,6 +2,8 @@ package configs
 
 import (
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -14,7 +16,12 @@ type Config struct {
 	DBPassword string
 	DBName     string
 
-	JWTSecretKey string
+	JWTAccessSecret          string
+	JWTRefreshSecret         string
+	JWTAccessTokenExpiresIn  time.Duration
+	JWTRefreshTokenExpiresIn time.Duration
+
+	CORSAllowedOrigins string
 }
 
 // LoadConfig loads application configuration from .env file
@@ -30,6 +37,15 @@ func LoadConfig() (config Config, err error) {
 	config.DBPassword = os.Getenv("DB_PASSWORD")
 	config.DBName = os.Getenv("DB_NAME")
 
-	config.JWTSecretKey = os.Getenv("JWT_SECRET_KEY")
+	config.CORSAllowedOrigins = os.Getenv("CORS_ALLOWED_ORIGINS")
+
+	config.JWTAccessSecret = os.Getenv("JWT_ACCESS_SECRET_KEY")
+	config.JWTRefreshSecret = os.Getenv("JWT_REFRESH_SECRET_KEY")
+
+	accessExp, _ := strconv.Atoi(os.Getenv("JWT_ACCESS_EXPIRATION_IN_MINUTES"))
+	config.JWTAccessTokenExpiresIn = time.Duration(accessExp) * time.Minute
+
+	refreshExp, _ := strconv.Atoi(os.Getenv("JWT_REFRESH_EXPIRATION_IN_HOURS"))
+	config.JWTRefreshTokenExpiresIn = time.Duration(refreshExp) * time.Hour
 	return
 }

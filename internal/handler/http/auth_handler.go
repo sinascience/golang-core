@@ -31,6 +31,10 @@ type LoginPayload struct {
 	Password string `json:"password"`
 }
 
+type RefreshTokenPayload struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 // Register is the handler for the user registration endpoint.
 // @Summary      Register a new user
 // @Description  Creates a new user account with the provided details.
@@ -83,10 +87,30 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	tokens, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
-	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token})
+	return response.Success(c, fiber.StatusOK, tokens)
+}
+
+// RefreshToken is the handler for refreshing tokens.
+func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	payload := new(RefreshTokenPayload)
+
+	if err := c.BodyParser(payload); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
+	}
+
+	if errs := validator.ValidateStruct(payload); errs != nil {
+		return response.ValidationError(c, errs)
+	}
+
+	newTokens, err := h.authService.RefreshToken(c.Context(), payload.RefreshToken)
+	if err != nil {
+		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, newTokens)
 }

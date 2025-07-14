@@ -27,7 +27,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	api := app.Group("/api/v1")
 
 	// --- Setups ---
-	authMiddleware := middleware.NewAuthMiddleware(conf.JWTSecretKey)
+	authMiddleware := middleware.NewAuthMiddleware(conf.JWTAccessSecret)
 
 	// --- Setup services ---
 	authService := service.NewAuthService(db, conf)
@@ -42,6 +42,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	// --- Auth routes ---
 	api.Post("/register", authHandler.Register)
 	api.Post("/login", authHandler.Login)
+	api.Post("/refresh", authHandler.RefreshToken)
 
 	// --- User routes ---
 	api.Get("/profile", authMiddleware, userHandler.GetProfile)

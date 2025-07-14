@@ -7,18 +7,26 @@ import (
 	"github.com/google/uuid"
 )
 
-// GenerateToken creates a new JWT for a given user.
-func GenerateToken(userID uuid.UUID, secretKey string) (string, error) {
-	// Create the claims
+// GenerateAccessToken creates a new, short-lived access token.
+func GenerateAccessToken(userID uuid.UUID, secretKey string, expiresAt time.Duration) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID.String(),
-		"exp":     time.Now().Add(time.Hour * 72).Unix(), // Token expires in 72 hours
+		"exp":     time.Now().Add(expiresAt).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
-	// Create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secretKey))
+}
 
-	// Generate encoded token and return it
+// GenerateRefreshToken creates a new, long-lived refresh token.
+func GenerateRefreshToken(userID uuid.UUID, secretKey string, expiresAt time.Duration) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": userID.String(),
+		"exp":     time.Now().Add(expiresAt).Unix(),
+		"iat":     time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secretKey))
 }
