@@ -7,6 +7,7 @@ import (
 	"venturo-core/internal/model"
 	"venturo-core/pkg/utils"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -71,6 +72,23 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 
 	refresh, err := utils.GenerateRefresh(user.ID, s.conf.JWTSecretKey)
+	if err != nil {
+		return "", "", errors.New("could not generate token")
+	}
+
+	return token, refresh, nil
+}
+
+func (s *AuthService) Refresh(ctx context.Context, userID uuid.UUID) (string, string, error) {
+	// Find user by email
+
+	// Generate JWT
+	token, err := utils.GenerateToken(userID, s.conf.JWTSecretKey)
+	if err != nil {
+		return "", "", errors.New("could not generate token")
+	}
+
+	refresh, err := utils.GenerateRefresh(userID, s.conf.JWTSecretKey)
 	if err != nil {
 		return "", "", errors.New("could not generate token")
 	}

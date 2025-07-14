@@ -7,6 +7,7 @@ import (
 	"venturo-core/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
@@ -84,6 +85,19 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	token, refresh, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	if err != nil {
+		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token, "refresh": refresh})
+}
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	userID, ok := c.Locals("refresh_user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, errors.New("unauthorized"))
+	}
+
+	token, refresh, err := h.authService.Refresh(c.Context(), userID)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
