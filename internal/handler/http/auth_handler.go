@@ -32,7 +32,7 @@ type LoginPayload struct {
 }
 
 type RefreshTokenPayload struct {
-	Email string `json:"email"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // Register is the handler for the user registration endpoint.
@@ -118,7 +118,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, err := h.authService.RefreshToken(c.Context(), payload.Email)
+	token, err := h.authService.RefreshToken(c.Context(), payload.RefreshToken)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}

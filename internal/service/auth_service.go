@@ -6,6 +6,9 @@ import (
 	"venturo-core/configs"
 	"venturo-core/internal/model"
 	"venturo-core/pkg/utils"
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
+
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -87,4 +90,41 @@ func (s *AuthService) RefreshToken(ctx context.Context, email string) (string, e
 	return accessToken, nil
 }
 
+// New Access Token from Refresh Token
+func (s *AuthService) NewAccessToken(c *fiber.Ctx, secretKey string) (string, error) {
+	if secretKey == "" {
+		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid refresh token"})
+	}
+	
+	// Parse and validate the token
+	token, err := jwt.Parse(secretKey, func(token *jwt.Token) (interface{}, error) {
+		// Validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fiber.NewError(fiber.StatusUnauthorized, "Unexpected signing method")
+		}
+		return []byte(secretKey), nil
+	})
 
+	if err != nil || !token.Valid {
+		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired JWT"})
+	}
+
+	// Get claims and extract user ID
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid JWT claims"})
+	}
+
+	userId, ok := claims["user_id"].(string)
+	if !ok {
+		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID in token"})
+	}
+
+	// Generate JWT new access token
+	accessToken, err := utils.GenerateNewToken(userId, s.conf.JWTSecretKey)
+	if err != nil {
+		return "", c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"could not generate token"})
+	}
+
+	return accessToken, nil
+}
