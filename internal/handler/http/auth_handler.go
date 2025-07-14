@@ -83,10 +83,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
 
-	token, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
+	token, refresh, err := h.authService.Login(c.Context(), payload.Email, payload.Password)
 	if err != nil {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
-	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token})
+	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token, "refresh": refresh})
 }

@@ -51,24 +51,29 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 }
 
 // Login validates user credentials and returns a JWT.
-func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (string, string, error) {
 	// Find user by email
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	// Compare password with the hash
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials")
 	}
 
 	// Generate JWT
 	token, err := utils.GenerateToken(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
-		return "", errors.New("could not generate token")
+		return "", "", errors.New("could not generate token")
 	}
 
-	return token, nil
+	refresh, err := utils.GenerateRefresh(user.ID, s.conf.JWTSecretKey)
+	if err != nil {
+		return "", "", errors.New("could not generate token")
+	}
+
+	return token, refresh, nil
 }

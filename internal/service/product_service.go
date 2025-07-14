@@ -80,7 +80,7 @@ func (s *ProductService) uploadProductImage(productID uuid.UUID, file *multipart
 	}
 
 	// 2. Update status to 'done' on success.
-	slog.Info("Successfully uploaded product image", "productID", productID, "url %s & %s", publicURL, localURL)
+	slog.Info("Successfully uploaded product image", "productID", productID, "publicURL", publicURL, "localURL", localURL)
 	s.updateImageStatus(productID, "done", publicURL)
 }
 

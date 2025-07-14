@@ -22,3 +22,19 @@ func GenerateToken(userID uuid.UUID, secretKey string) (string, error) {
 	// Generate encoded token and return it
 	return token.SignedString([]byte(secretKey))
 }
+
+func GenerateRefresh(userID uuid.UUID, secretKey string) (string, error) {
+	// Create the claims
+	claims := jwt.MapClaims{
+		"user_id":    userID.String(),
+		"token_type": "refresh",
+		"exp":        time.Now().Add(time.Hour * 168).Unix(), // Token expires in 1 Weeks
+		"iat":        time.Now().Unix(),
+	}
+
+	// Create token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Generate encoded token and return it
+	return token.SignedString([]byte(secretKey))
+}
