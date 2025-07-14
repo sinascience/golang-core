@@ -58,6 +58,8 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	// --- Auth routes ---
 	api.Post("/register", authHandler.Register)
 	api.Post("/login", authHandler.Login)
+	api.Post("/refresh", authHandler.Refresh)
+	
 
 	// --- User routes ---
 	api.Get("/profile", authMiddleware, userHandler.GetProfile)

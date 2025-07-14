@@ -31,6 +31,10 @@ type LoginPayload struct {
 	Password string `json:"password"`
 }
 
+type RefreshTokenPayload struct {
+	Email string `json:"email"`
+}
+
 // Register is the handler for the user registration endpoint.
 // @Summary      Register a new user
 // @Description  Creates a new user account with the provided details.
@@ -94,4 +98,30 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token, "refresh_token": accessToken})
+}
+
+// Refresh is the handler for the user refresh token endpoint.
+// @Summary      Refresh a user's JWT token
+// @Description  Refreshes a user's JWT token.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      RefreshTokenPayload        true  "User Refresh Token Payload"
+// @Success      200      {object}  response.ApiResponse "Successfully refreshed token"
+// @Failure      400      {object}  response.ApiResponse "Bad Request - Cannot parse JSON"
+// @Failure      401      {object}  response.ApiResponse "Unauthorized - Invalid credentials"
+// @Router       /refresh [post]
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	payload := new(RefreshTokenPayload)
+
+	if err := c.BodyParser(payload); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
+	}
+
+	token, err := h.authService.RefreshToken(c.Context(), payload.Email)
+	if err != nil {
+		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token})
 }

@@ -79,12 +79,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, email string) (string, e
 	var user model.User
 
 	// Generate JWT
-	token, err := utils.GenerateRefreshToken(user.ID, s.conf.JWTSecretKey)
+	accessToken, err := utils.GenerateRefreshToken(user.ID, s.conf.JWTSecretKey)
 	if err != nil {
 		return "", errors.New("could not generate token")
 	}
 
-	return token, nil
+	return accessToken, nil
 }
 
 
