@@ -72,3 +72,19 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 
 	return token, nil
 }
+
+// RefreshToken generates a new JWT for a user.
+func (s *AuthService) RefreshToken(ctx context.Context, email string) (string, error) {
+	// Find user by email
+	var user model.User
+
+	// Generate JWT
+	token, err := utils.GenerateRefreshToken(user.ID, s.conf.JWTSecretKey)
+	if err != nil {
+		return "", errors.New("could not generate token")
+	}
+
+	return token, nil
+}
+
+

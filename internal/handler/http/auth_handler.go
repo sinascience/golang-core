@@ -88,5 +88,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
-	return response.Success(c, fiber.StatusOK, fiber.Map{"token": token})
+	accessToken, err := h.authService.RefreshToken(c.Context(), payload.Email)
+	if err != nil {
+		return response.Error(c, fiber.StatusUnauthorized, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token, "refresh_token": accessToken})
 }
