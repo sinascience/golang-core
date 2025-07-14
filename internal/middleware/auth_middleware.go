@@ -118,7 +118,7 @@ func NewRefreshMiddleware(db *gorm.DB, secretKey string) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID format"})
 		}
 
-		err = refreshModel.FindByHashedToken(db, service.HashRefreshToken(tokenString))
+		err = refreshModel.FindByHashedToken(db, userID, service.HashRefreshToken(tokenString))
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 		}

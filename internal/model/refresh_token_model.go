@@ -27,6 +27,8 @@ func (u *RefreshToken) Delete(db *gorm.DB, id uuid.UUID) error {
 	return db.WithContext(context.Background()).Where("id = ?", id).Delete(&RefreshToken{}).Error
 }
 
-func (r *RefreshToken) FindByHashedToken(db *gorm.DB, hashedToken string) error {
-	return db.Where("hashed_token = ?", hashedToken).First(r).Error
+func (r *RefreshToken) FindByHashedToken(db *gorm.DB, userId uuid.UUID, hashedToken string) error {
+	return db.
+		Where("hashed_token = ? AND user_id = ?", hashedToken, userId).
+		First(r).Error
 }
