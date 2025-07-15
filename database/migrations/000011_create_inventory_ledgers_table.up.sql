@@ -2,7 +2,7 @@ CREATE TABLE inventory_ledgers (
     id CHAR(36) PRIMARY KEY,
     item_id CHAR(36) NOT NULL,
     outlet_id CHAR(36) NOT NULL,
-    transaction_id CHAR(36),
+    transaction_id CHAR(36) NULL,
     quantity_change INT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

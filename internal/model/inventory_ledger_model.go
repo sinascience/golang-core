@@ -10,13 +10,13 @@ import (
 
 // Transaction defines the main transaction model.
 type InventoryLedger struct {
-	ID             uuid.UUID `gorm:"type:char(36);primary_key"`
-	ItemID         uuid.UUID `gorm:"type:char(36);not null"`
-	OutletID       uuid.UUID `gorm:"type:char(36);not null"`
-	TransactionID  uuid.UUID `gorm:"type:char(36)"`
-	QuantityChange int8      `gorm:"not null"`
-	CreatedAt      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;<-:create"`
-	UpdatedAt      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime"`
+	ID             uuid.UUID  `gorm:"type:char(36);primary_key"`
+	ItemID         uuid.UUID  `gorm:"type:char(36);not null"`
+	OutletID       uuid.UUID  `gorm:"type:char(36);not null"`
+	TransactionID  *uuid.UUID `gorm:"type:char(36);"`
+	QuantityChange int8       `gorm:"not null"`
+	CreatedAt      time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;<-:create"`
+	UpdatedAt      time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime"`
 
 	// Relationships
 	Item        Product     `gorm:"foreignKey:ItemID"`
