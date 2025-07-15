@@ -64,17 +64,3 @@ func (h *InventoryHandler) StockIN(c *fiber.Ctx) error {
 
 	return response.Success(c, fiber.StatusCreated, result)
 }
-
-// StockOUT handler
-// func (h *InventoryHandler) StockOUT(c *fiber.Ctx) error {
-// 	input, err := h.parseCreateInventoryPayload(c)
-// 	if err != nil {
-// 		return response.Error(c, fiber.StatusBadRequest, err)
-// 	}
-
-// 	if err := h.inventoryService.StockOut(c.Context(), *input); err != nil {
-// 		return response.Error(c, fiber.StatusInternalServerError, err)
-// 	}
-
-// 	return response.Success(c, fiber.Map{"message": "Stock reduced successfully"})
-// }

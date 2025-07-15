@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"strings"
 	"sync"
@@ -53,7 +54,13 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 		if err != nil {
 			return nil, fmt.Errorf("failed to check stock for product: %s", item.ProductName)
 		}
-
+		if item.Qty <= 0 {
+			insufficientItems = append(insufficientItems,
+				fmt.Sprintf("%s (request must be at least 1)",
+					item.ProductName),
+			)
+			continue
+		}
 		if availableStock < int64(item.Qty) {
 			insufficientItems = append(insufficientItems,
 				fmt.Sprintf("%s (requested: %d, available: %d)",
@@ -110,6 +117,21 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	if err != nil {
 		return nil, err
 	}
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		for _, item := range details {
+			ledger := model.InventoryLedger{
+				ItemID:         item.ProductID,
+				OutletID:       input.OutletID,
+				TransactionID:  &transaction.ID,
+				QuantityChange: -int8(item.Qty),
+			}
+			if err := s.db.Create(&ledger).Error; err != nil {
+				slog.Error("Failed to create inventory ledger", "err", err)
+			}
+		}
+	}()
 
 	return &transaction, nil
 }
