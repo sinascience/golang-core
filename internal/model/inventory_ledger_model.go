@@ -15,7 +15,6 @@ type InventoryLedger struct {
 	OutletID       uuid.UUID `gorm:"type:char(36);not null"`
 	TransactionID  uuid.UUID `gorm:"type:char(36)"`
 	QuantityChange int8      `gorm:"not null"`
-	Name           string    `gorm:"type:varchar(255);not null"`
 	CreatedAt      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;<-:create"`
 	UpdatedAt      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP;autoUpdateTime"`
 

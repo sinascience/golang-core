@@ -4,7 +4,6 @@ CREATE TABLE inventory_ledgers (
     outlet_id CHAR(36) NOT NULL,
     transaction_id CHAR(36),
     quantity_change INT,
-    name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES products(id) ON DELETE CASCADE,
