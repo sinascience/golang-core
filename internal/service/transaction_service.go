@@ -28,8 +28,9 @@ func NewTransactionService(db *gorm.DB, wg *sync.WaitGroup) *TransactionService 
 
 // CreateTransactionInput is the data structure needed to create a transaction.
 type CreateTransactionInput struct {
-	UserID uuid.UUID
-	Items  []struct {
+	UserID   uuid.UUID
+	OutletID uuid.UUID
+	Items    []struct {
 		ProductID   uuid.UUID
 		ProductName string
 		Category    model.ProductCategory
@@ -45,8 +46,23 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	var total int64
 	var details []model.TransactionDetail
 	var itemNames []string
+	var insufficientItems []string
 
 	for _, item := range input.Items {
+		availableStock, err := s.GetStock(item.ProductID, input.OutletID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check stock for product: %s", item.ProductName)
+		}
+
+		if availableStock < int64(item.Qty) {
+			insufficientItems = append(insufficientItems,
+				fmt.Sprintf("%s (requested: %d, available: %d)",
+					item.ProductName, item.Qty, availableStock),
+			)
+			continue
+		}
+
+		// Add to total and build transaction detail
 		total += int64(item.Qty) * int64(item.Price)
 		details = append(details, model.TransactionDetail{
 			ProductID:   item.ProductID,
@@ -56,6 +72,11 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 			Price:       item.Price,
 		})
 		itemNames = append(itemNames, item.ProductName)
+	}
+
+	// Final check before creating the transaction
+	if len(insufficientItems) > 0 {
+		return nil, fmt.Errorf("insufficient stock for: %s", strings.Join(insufficientItems, ", "))
 	}
 
 	// 2. Generate Invoice Code and Note
@@ -69,6 +90,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	// 3. Create the main transaction object
 	transaction := model.Transaction{
 		UserID:             input.UserID,
+		OutletID:           input.OutletID,
 		InvoiceCode:        invoiceCode,
 		Total:              total,
 		Note:               note,
@@ -90,6 +112,16 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	}
 
 	return &transaction, nil
+}
+
+func (s *TransactionService) GetStock(itemID, outletID uuid.UUID) (int64, error) {
+	var total int64
+	err := s.db.
+		Model(&model.InventoryLedger{}).
+		Select("SUM(quantity_change)").
+		Where("item_id = ? AND outlet_id = ?", itemID, outletID).
+		Scan(&total).Error
+	return total, err
 }
 
 // generateInvoiceCode creates a random invoice code.
