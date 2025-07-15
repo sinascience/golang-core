@@ -92,6 +92,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusUnauthorized, err)
 	}
 
+	if saveToken:= h.authService.CreateToken(c.Context(), token, refreshToken); saveToken != nil {
+		return response.Error(c, fiber.StatusInternalServerError, saveToken)
+	}
+	
 	return response.Success(c, fiber.StatusOK, fiber.Map{"access_token": token, "refresh_token": refreshToken})
 }
 

@@ -22,6 +22,7 @@ type Transaction struct {
 	// Relationships
 	User               User                `gorm:"foreignKey:UserID"`
 	TransactionDetails []TransactionDetail `gorm:"foreignKey:TransactionID"`
+	Outlet 			   Outlet 			   `gorm:"foreignKey:OutletID"`
 }
 
 // BeforeCreate is a GORM hook.

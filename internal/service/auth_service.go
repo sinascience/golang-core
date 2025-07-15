@@ -8,7 +8,7 @@ import (
 	"venturo-core/pkg/utils"
 	"github.com/golang-jwt/jwt/v5"
 
-
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -82,6 +82,12 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 
 // New Access Token from Refresh Token
 func (s *AuthService) RefreshToken(c context.Context, refresh_token string) (string, error) {
+	// Check if refresh token already exists
+	var existingToken model.Token
+	if err := s.db.WithContext(c).Where("refresh_token = ?", refresh_token).First(&existingToken).Error; err != nil {
+		return "", errors.New("invalid refresh token")
+	}
+	
 	// Parse and validate the token
 	token, err := jwt.Parse(refresh_token, func(token *jwt.Token) (interface{}, error) {
 		// Validate the alg is what you expect:
@@ -113,4 +119,69 @@ func (s *AuthService) RefreshToken(c context.Context, refresh_token string) (str
 	}
 
 	return accessToken, nil
+}
+
+// CreateToken creates a new token.
+func (s *AuthService) CreateToken(ctx context.Context, access_token, refreshToken string) error {
+	// Parse and validate the token
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		// Validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(s.conf.JWTSecretKey), nil
+	})
+
+	if err != nil || !token.Valid {
+		return errors.New("invalid token")
+	}
+
+	// Get claims and extract user ID
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return errors.New("invalid jwt claims")
+	}
+
+	// Get user ID
+	userId, ok := claims["user_id"].(string)
+	if !ok {
+		return errors.New("invalid user ID")
+	}
+
+	// Parse user ID to UUID
+	userIdUUID, err := uuid.Parse(userId)
+	if err != nil {
+		return errors.New("invalid user ID")
+	}
+
+	// Check by user ID
+	var existingToken model.Token
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userIdUUID).First(&existingToken).Error; err == nil {
+		// Update token
+		existingToken.Token = access_token
+		if err := existingToken.Save(s.db); err != nil {
+			return err
+		}
+		return errors.New("token has updated")
+	}
+
+	// Hash the refresh token
+	hashedRefreshToken, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// Create new token
+	tokenInput := model.Token{
+		UserID: userIdUUID, 
+		Token: access_token, 
+		RefreshToken: string(hashedRefreshToken),
+	}
+
+	// Save in token database
+	if err := tokenInput.Save(s.db); err != nil {
+		return err
+	}
+
+	return nil
 }
