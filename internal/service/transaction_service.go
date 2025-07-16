@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"venturo-core/internal/model"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -36,6 +37,7 @@ type CreateTransactionInput struct {
 		Qty         int8
 		Price       int32
 	}
+	OutletID uuid.UUID
 	Note string
 }
 
@@ -47,6 +49,22 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	var itemNames []string
 
 	for _, item := range input.Items {
+		var onHand sql.NullInt64
+		if err := s.db.WithContext(ctx).Raw("SELECT SUM(quantity) FROM inventory_ledgers WHERE product_id = ? AND outlet_id = ?", item.ProductID, input.OutletID).Row().Scan(&onHand); err != nil {
+			return nil, err
+		}
+
+		// Tangani jika nilai NULL
+		stockQty := int64(0)
+		if onHand.Valid {
+			stockQty = onHand.Int64
+		}
+
+		// Check if there is enough stock
+		if stockQty < int64(item.Qty) {
+		    return nil, errors.New("not enough stock")
+		}
+
 		total += int64(item.Qty) * int64(item.Price)
 		details = append(details, model.TransactionDetail{
 			ProductID:   item.ProductID,
@@ -69,6 +87,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	// 3. Create the main transaction object
 	transaction := model.Transaction{
 		UserID:             input.UserID,
+		OutletID:           input.OutletID,
 		InvoiceCode:        invoiceCode,
 		Total:              total,
 		Note:               note,

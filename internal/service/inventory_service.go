@@ -20,13 +20,7 @@ func NewInventoryService(db *gorm.DB, wg *sync.WaitGroup) *InventoryService {
 }
 
 // Create Stock In method for inventory
-func (i *InventoryService) StockIn(ctx context.Context, quantityIn int, product_id, outled_id uuid.UUID, transaction_id *uuid.UUID) (*model.Inventory, error){
-	// // check if product id, outled id is exist
-	// var existingStock model.Inventory
-	// if err := i.db.WithContext(ctx).Where("product_id = ? AND outlet_id = ?", product_id, outled_id).First(&existingStock).Error; err == nil {
-	// 	return nil, err
-	// }
-	
+func (i *InventoryService) StockIn(ctx context.Context, quantityIn int, product_id, outled_id uuid.UUID, transaction_id *uuid.UUID) (*model.Inventory, error){	
 	// Create the inventory
 	inventoryInput := model.Inventory{
 		ProductID : product_id,

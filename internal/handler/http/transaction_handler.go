@@ -23,6 +23,7 @@ func NewTransactionHandler(s *service.TransactionService) *TransactionHandler {
 
 // CreateTransactionPayload defines the expected JSON from the client.
 type CreateTransactionPayload struct {
+	OutletID uuid.UUID `json:"outlet_id" validate:"required"`
 	Items []struct {
 		ProductID   uuid.UUID `json:"product_id" validate:"required"`
 		ProductName string    `json:"product_name" validate:"required"`
@@ -63,6 +64,7 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	// Map payload to the service input struct
 	serviceInput := service.CreateTransactionInput{
 		UserID: userID,
+		OutletID: payload.OutletID,
 		Note:   payload.Note,
 	}
 	for _, item := range payload.Items {
