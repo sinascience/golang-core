@@ -165,17 +165,11 @@ func (s *AuthService) CreateToken(ctx context.Context, access_token, refreshToke
 		return errors.New("token has updated")
 	}
 
-	// Hash the refresh token
-	hashedRefreshToken, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
 	// Create new token
 	tokenInput := model.Token{
 		UserID: userIdUUID, 
 		Token: access_token, 
-		RefreshToken: string(hashedRefreshToken),
+		RefreshToken: refreshToken,
 	}
 
 	// Save in token database

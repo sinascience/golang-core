@@ -76,7 +76,7 @@ func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusCreated, post)
-}
+	}
 
 // GetAllPosts now handles pagination and returns a structured response.
 // @Summary      Get all posts
