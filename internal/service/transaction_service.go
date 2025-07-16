@@ -117,21 +117,6 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	if err != nil {
 		return nil, err
 	}
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		for _, item := range details {
-			ledger := model.InventoryLedger{
-				ItemID:         item.ProductID,
-				OutletID:       input.OutletID,
-				TransactionID:  &transaction.ID,
-				QuantityChange: -int8(item.Qty),
-			}
-			if err := s.db.Create(&ledger).Error; err != nil {
-				slog.Error("Failed to create inventory ledger", "err", err)
-			}
-		}
-	}()
 
 	return &transaction, nil
 }
@@ -157,7 +142,7 @@ func (s *TransactionService) MarkAsPaid(ctx context.Context, transactionID uuid.
 	// --- SYNCHRONOUS PART ---
 	// The user waits for this to finish.
 	var transaction model.Transaction
-	if err := s.db.WithContext(ctx).First(&transaction, "id = ?", transactionID).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("TransactionDetails").First(&transaction, "id = ?", transactionID).Error; err != nil {
 		return errors.New("transaction not found")
 	}
 
@@ -166,6 +151,22 @@ func (s *TransactionService) MarkAsPaid(ctx context.Context, transactionID uuid.
 	if err := transaction.Save(s.db); err != nil {
 		return err // Return error if the quick update fails
 	}
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		for _, item := range transaction.TransactionDetails {
+			ledger := model.InventoryLedger{
+				ItemID:         item.ProductID,
+				OutletID:       transaction.OutletID,
+				TransactionID:  &transaction.ID,
+				QuantityChange: -int8(item.Qty),
+			}
+			if err := s.db.Create(&ledger).Error; err != nil {
+				slog.Error("Failed to create inventory ledger", "err", err)
+			}
+		}
+	}()
 
 	// --- ASYNCHRONOUS PART ---
 	// The user DOES NOT wait for this.
