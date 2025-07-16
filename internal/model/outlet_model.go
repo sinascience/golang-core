@@ -10,7 +10,7 @@ import (
 // Transaction defines the main transaction model.
 type Outlet struct {
 	ID          uuid.UUID     `gorm:"type:char(36);primary_key"`
-	Name        uuid.UUID     `gorm:"size:255;not null"`
+	Name        string        `gorm:"size:255;not null"`
 	Transaction []Transaction `gorm:"foreignKey:OutletID"`
 }
 
