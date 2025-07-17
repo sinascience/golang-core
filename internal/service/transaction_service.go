@@ -49,6 +49,7 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	var itemNames []string
 
 	for _, item := range input.Items {
+		// Cek stok
 		var onHand sql.NullInt64
 		if err := s.db.WithContext(ctx).Raw("SELECT SUM(quantity) FROM inventory_ledgers WHERE product_id = ? AND outlet_id = ?", item.ProductID, input.OutletID).Row().Scan(&onHand); err != nil {
 			return nil, err
@@ -107,9 +108,40 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, input Create
 	if err != nil {
 		return nil, err
 	}
+	
+	// Create inventory ledger after transaction
+	for _,detail := range details {
+		s.wg.Add(1)
+		// d := detail
+		go func(i model.TransactionDetail) {
+			defer s.wg.Done()
+			// Make negative quantity
+			detail.Qty = -(detail.Qty)
+			if err := s.StockIn(ctx, int(detail.Qty), detail.ProductID, input.OutletID, &transaction.ID); err != nil {
+				return
+			}
+		}(detail)
+	}
 
 	return &transaction, nil
 }
+
+func (s *TransactionService) StockIn(ctx context.Context, quantity int, productID uuid.UUID, outletID uuid.UUID, transactionID *uuid.UUID) error {
+	inventoryInput := model.Inventory{
+		ProductID : productID,
+		OutletID : outletID,
+		TransactionID : transactionID,
+		Quantity : quantity,
+	}
+
+	// Save the inventory
+	if err := inventoryInput.Save(s.db); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // generateInvoiceCode creates a random invoice code.
 func generateInvoiceCode() string {
 	rand.Seed(time.Now().UnixNano())
