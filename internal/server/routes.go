@@ -44,6 +44,8 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	productService := service.NewProductService(db, wg, localUploader)
 	// Add Inventory Service
 	inventoryService := service.NewInventoryService(db, wg)
+	// Add Report Service
+	reportService := service.NewReportService(db)
 
 	// --- Setup handlers ---
 	authHandler := http.NewAuthHandler(authService)
@@ -52,6 +54,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	transactionHandler := http.NewTransactionHandler(transactionService)
 	productHandler := http.NewProductHandler(productService)
 	inventoryHandler := http.NewInventoryHandler(inventoryService)
+	reportHandler := http.NewReportHandler(reportService)
 
 
 	// Add our new handler
@@ -83,4 +86,6 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	api.Post("/products", authMiddleware, productHandler.CreateProduct)
 	// --- Inventory routes ---
 	api.Post("/inventories", authMiddleware ,inventoryHandler.StockIn)
+	// --- Report routes---
+	api.Get("/inventories/report", authMiddleware, reportHandler.GetInventoryReport)
 }
