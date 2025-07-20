@@ -9,6 +9,7 @@ import (
 	"venturo-core/internal/database"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 // NewServer creates and configures a new Fiber application.
@@ -22,6 +23,11 @@ func NewServer() (*fiber.App, *sync.WaitGroup) {
 	database.ConnectDB(&config)
 
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:4200",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
+	}))
 
 	var wg sync.WaitGroup
 
