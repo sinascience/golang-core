@@ -70,7 +70,7 @@ func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 		return response.ValidationError(c, errs)
 	}
 
-	post, err := h.postService.CreatePost(userID, payload.Title, payload.Body)
+	post, err := h.postService.CreatePost(c.Context(), userID, payload.Title, payload.Body)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, errors.New("could not create post"))
 	}
@@ -104,7 +104,7 @@ func (h *PostHandler) GetAllPosts(c *fiber.Ctx) error {
 	}
 
 	// 2. Call the service to get paginated data and total count
-	posts, total, err := h.postService.GetAllPosts(page, limit)
+	posts, total, err := h.postService.GetAllPosts(c.Context(), page, limit)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, errors.New("could not retrieve posts"))
 	}
@@ -129,7 +129,7 @@ func (h *PostHandler) GetPostByID(c *fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("invalid ID format"))
 	}
 
-	post, err := h.postService.GetPostByID(id)
+	post, err := h.postService.GetPostByID(c.Context(), id)
 	if err != nil {
 		return response.Error(c, fiber.StatusNotFound, errors.New("post not found"))
 	}
@@ -163,7 +163,7 @@ func (h *PostHandler) DeletePost(c *fiber.Ctx) error {
 	}
 
 	// Call the service to delete the post
-	err = h.postService.DeletePost(postID, userID)
+	err = h.postService.DeletePost(c.Context(), postID, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unauthorized") {
 			return response.Error(c, fiber.StatusForbidden, err)
@@ -214,7 +214,7 @@ func (h *PostHandler) UpdatePost(c *fiber.Ctx) error {
 		return response.ValidationError(c, errs)
 	}
 
-	updatedPost, err := h.postService.UpdatePost(postID, userID, payload.Title, payload.Body)
+	updatedPost, err := h.postService.UpdatePost(c.Context(), postID, userID, payload.Title, payload.Body)
 	if err != nil {
 		if strings.Contains(err.Error(), "unauthorized") {
 			return response.Error(c, fiber.StatusForbidden, err)

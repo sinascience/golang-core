@@ -1,0 +1,1 @@
+CREATE INDEX idx_refresh_tokens_user_token ON refresh_tokens(user_id, token(255))

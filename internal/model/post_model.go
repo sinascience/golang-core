@@ -28,17 +28,17 @@ func (p *Post) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 // Save creates or updates a post record.
-func (p *Post) Save(db *gorm.DB) error {
-	return db.WithContext(context.Background()).Save(p).Error
+func (p *Post) Save(ctx context.Context, db *gorm.DB) error {
+	return db.WithContext(ctx).Save(p).Error
 }
 
 // FindAll retrieves all post records, preloading the author data.
-func (p *Post) FindAll(db *gorm.DB, page, limit int) ([]Post, int64, error) {
+func (p *Post) FindAll(ctx context.Context, db *gorm.DB, page, limit int) ([]Post, int64, error) {
 	var posts []Post
 	var total int64
 
 	// 1. Get the total count of posts
-	if err := db.Model(&Post{}).Count(&total).Error; err != nil {
+	if err := db.WithContext(ctx).Model(&Post{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -46,7 +46,7 @@ func (p *Post) FindAll(db *gorm.DB, page, limit int) ([]Post, int64, error) {
 	offset := (page - 1) * limit
 
 	// 3. Get the paginated data
-	err := db.Limit(limit).Offset(offset).Preload("User").Order("created_at desc").Find(&posts).Error
+	err := db.WithContext(ctx).Limit(limit).Offset(offset).Preload("User").Order("created_at desc").Find(&posts).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -55,13 +55,13 @@ func (p *Post) FindAll(db *gorm.DB, page, limit int) ([]Post, int64, error) {
 }
 
 // FindByID retrieves a single post by its ID, preloading the author.
-func (p *Post) FindByID(db *gorm.DB, id uuid.UUID) (*Post, error) {
+func (p *Post) FindByID(ctx context.Context, db *gorm.DB, id uuid.UUID) (*Post, error) {
 	var post Post
-	err := db.Preload("User").Where("id = ?", id).First(&post).Error
+	err := db.WithContext(ctx).Preload("User").Where("id = ?", id).First(&post).Error
 	return &post, err
 }
 
 // Delete removes a post record from the database.
-func (p *Post) Delete(db *gorm.DB) error {
-	return db.Delete(p).Error
+func (p *Post) Delete(ctx context.Context, db *gorm.DB) error {
+	return db.WithContext(ctx).Delete(p).Error
 }

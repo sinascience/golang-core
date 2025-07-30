@@ -16,7 +16,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	database.ConnectDB(&config)
+	db := database.ConnectDB(&config)
 
 	if len(os.Args) < 2 {
 		slog.Error("Please provide an argument: up, down, or fresh")
@@ -27,12 +27,12 @@ func main() {
 
 	switch command {
 	case "up":
-		database.MigrateUp()
+		database.MigrateUp(db)
 	case "down":
-		database.MigrateDown()
+		database.MigrateDown(db)
 	case "fresh":
-		database.Drop()
-		database.MigrateUp()
+		database.Drop(db)
+		database.MigrateUp(db)
 	default:
 		slog.Error("Unknown command", "command", command)
 		os.Exit(1)

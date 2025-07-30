@@ -25,18 +25,25 @@ func (rt *RefreshToken) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 // Create saves a new refresh token record to the database.
-func (rt *RefreshToken) Create(db *gorm.DB) error {
-	return db.WithContext(context.Background()).Create(rt).Error
+func (rt *RefreshToken) Create(ctx context.Context, db *gorm.DB) error {
+	return db.WithContext(ctx).Create(rt).Error
 }
 
 // FindAllByUserID finds all refresh tokens associated with a user.
-func (rt *RefreshToken) FindAllByUserID(db *gorm.DB, userID uuid.UUID) ([]RefreshToken, error) {
+func (rt *RefreshToken) FindAllByUserID(ctx context.Context, db *gorm.DB, userID uuid.UUID) ([]RefreshToken, error) {
 	var tokens []RefreshToken
-	err := db.Where("user_id = ?", userID).Find(&tokens).Error
+	err := db.WithContext(ctx).Where("user_id = ?", userID).Find(&tokens).Error
 	return tokens, err
 }
 
+// FindByUserIDAndToken finds a specific refresh token by user ID and token hash.
+func (rt *RefreshToken) FindByUserIDAndToken(ctx context.Context, db *gorm.DB, userID uuid.UUID, tokenHash string) (*RefreshToken, error) {
+	var token RefreshToken
+	err := db.WithContext(ctx).Where("user_id = ? AND token = ?", userID, tokenHash).First(&token).Error
+	return &token, err
+}
+
 // Delete removes a refresh token record from the database by its ID.
-func (rt *RefreshToken) Delete(db *gorm.DB) error {
-	return db.Delete(rt).Error
+func (rt *RefreshToken) Delete(ctx context.Context, db *gorm.DB) error {
+	return db.WithContext(ctx).Delete(rt).Error
 }

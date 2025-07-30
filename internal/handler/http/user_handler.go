@@ -36,7 +36,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	}
 
 	// Get user profile from the service
-	user, err := h.userService.GetUserProfile(userID)
+	user, err := h.userService.GetUserProfile(c.Context(), userID)
 	if err != nil {
 		return response.Error(c, fiber.StatusNotFound, errors.New("user not found"))
 	}

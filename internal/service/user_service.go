@@ -26,8 +26,8 @@ type UserService struct {
 	wg       *sync.WaitGroup
 }
 
-func NewUserService(db *gorm.DB, wg *sync.WaitGroup) *UserService {
-	gcsAdapter := storage.NewGCSAdapter("your-gcs-bucket-name")
+func NewUserService(db *gorm.DB, bucketName string, wg *sync.WaitGroup) *UserService {
+	gcsAdapter := storage.NewGCSAdapter(bucketName)
 	fileUploader := uploader.NewFileUploader(gcsAdapter, tempUploadPath)
 
 	// Ensure the temporary upload directory exists
@@ -39,15 +39,15 @@ func NewUserService(db *gorm.DB, wg *sync.WaitGroup) *UserService {
 }
 
 // GetUserProfile retrieves a user's profile by their ID.
-func (s *UserService) GetUserProfile(userID uuid.UUID) (*model.User, error) {
+func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*model.User, error) {
 	var user model.User
-	return user.FindByID(s.db, userID)
+	return user.FindByID(ctx, s.db, userID)
 }
 
 // UpdateUserProfile updates a user's profile data.
 func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, newName string, file *multipart.FileHeader) (*model.User, error) {
 	// First, find the user to ensure they exist.
-	user, err := s.GetUserProfile(userID)
+	user, err := s.GetUserProfile(ctx, userID)
 	if err != nil {
 		return nil, err // User not found
 	}
@@ -64,23 +64,25 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, n
 	user.Name = newName
 
 	// Save the updated user record. GORM's Save() handles updates automatically.
-	if err := user.Save(s.db); err != nil {
+	if err := user.Save(ctx, s.db); err != nil {
 		return nil, err
 	}
 
 	if file != nil {
-		// Define the database logic in callbacks
+		// Capture userID and filename for background process to avoid race conditions
+		capturedUserID := userID
+		capturedFilename := user.AvatarURL
+		
+		// Define the database logic in callbacks with proper error handling
 		onLocalUpload := func() {
-			user.ImageStatus = "local"
-			if err := user.Save(s.db); err != nil {
-				slog.Error("Error updating status to 'local' for user", "userID", userID, "error", err)
+			if err := s.db.Model(&model.User{}).Where("id = ?", capturedUserID).Update("image_status", "local").Error; err != nil {
+				slog.Error("Error updating status to 'local' for user", "userID", capturedUserID, "error", err)
 			}
 		}
 
 		onCloudUpload := func() {
-			user.ImageStatus = "cloud"
-			if err := user.Save(s.db); err != nil {
-				slog.Error("Error updating status to 'cloud' for user", "userID", userID, "error", err)
+			if err := s.db.Model(&model.User{}).Where("id = ?", capturedUserID).Update("image_status", "cloud").Error; err != nil {
+				slog.Error("Error updating status to 'cloud' for user", "userID", capturedUserID, "error", err)
 			}
 		}
 
@@ -88,7 +90,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, n
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			s.uploader.UploadAsync(file, user.AvatarURL, onLocalUpload, onCloudUpload)
+			s.uploader.UploadAsync(file, capturedFilename, onLocalUpload, onCloudUpload)
 		}()
 	}
 

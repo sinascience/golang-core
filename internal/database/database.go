@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"venturo-core/configs"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -15,12 +16,27 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+// Removed global DB variable - now using dependency injection
 
-// ConnectDB connects to the database using the provided configuration.
-func ConnectDB(config *configs.Config) {
-	var err error
+// sanitizeDSN removes password from DSN for safe logging
+func sanitizeDSN(dsn string) string {
+	// Replace password in DSN with ***
+	parts := strings.Split(dsn, "@")
+	if len(parts) < 2 {
+		return dsn
+	}
+	
+	userParts := strings.Split(parts[0], ":")
+	if len(userParts) >= 2 {
+		userParts[1] = "***"
+		parts[0] = strings.Join(userParts, ":")
+	}
+	
+	return strings.Join(parts, "@")
+}
 
+// ConnectDB connects to the database using the provided configuration and returns the DB instance.
+func ConnectDB(config *configs.Config) *gorm.DB {
 	credentials := config.DBUser
 	if config.DBPassword != "" {
 		credentials = fmt.Sprintf("%s:%s", config.DBUser, config.DBPassword)
@@ -33,23 +49,26 @@ func ConnectDB(config *configs.Config) {
 		config.DBName,
 	)
 
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+		// Sanitize DSN for logging (remove password)
+		sanitizedDSN := sanitizeDSN(dsn)
+		slog.Error("Failed to connect to database", "error", err, "dsn", sanitizedDSN)
 		os.Exit(1)
 	}
 
 	slog.Info("Database connection successful.")
+	return db
 }
 
 // newMigrate creates a new migrate instance.
-func newMigrate() (*migrate.Migrate, error) {
-	if DB == nil {
+func newMigrate(db *gorm.DB) (*migrate.Migrate, error) {
+	if db == nil {
 		return nil, errors.New("database connection is not initialized")
 	}
 
 	// Call the DB() method to get the underlying *sql.DB instance
-	sqlDB, err := DB.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +81,8 @@ func newMigrate() (*migrate.Migrate, error) {
 }
 
 // MigrateUp applies all available up migrations.
-func MigrateUp() {
-	m, err := newMigrate()
+func MigrateUp(db *gorm.DB) {
+	m, err := newMigrate(db)
 	if err != nil {
 		slog.Error("Migration failed", "error", err)
 		os.Exit(1)
@@ -76,8 +95,8 @@ func MigrateUp() {
 }
 
 // MigrateDown rolls back the last applied migration.
-func MigrateDown() {
-	m, err := newMigrate()
+func MigrateDown(db *gorm.DB) {
+	m, err := newMigrate(db)
 	if err != nil {
 		slog.Error("Migration failed", "error", err)
 		os.Exit(1)
@@ -90,8 +109,8 @@ func MigrateDown() {
 }
 
 // Drop deletes everything in the database.
-func Drop() {
-	m, err := newMigrate()
+func Drop(db *gorm.DB) {
+	m, err := newMigrate(db)
 	if err != nil {
 		slog.Error("Migration failed", "error", err)
 		os.Exit(1)

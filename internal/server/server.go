@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"sync"
 	"time"
 	"venturo-core/configs"
 	"venturo-core/internal/database"
+	"venturo-core/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -20,9 +22,21 @@ func NewServer() (*fiber.App, *sync.WaitGroup) {
 		os.Exit(1)
 	}
 
-	database.ConnectDB(&config)
+	db := database.ConnectDB(&config)
 
 	app := fiber.New()
+	
+	// Add middleware to set client IP in context
+	app.Use(func(c *fiber.Ctx) error {
+		ctx := context.WithValue(c.Context(), "client_ip", c.IP())
+		ctx = context.WithValue(ctx, "request_time", time.Now())
+		c.SetUserContext(ctx)
+		return c.Next()
+	})
+	
+	// Add logging middleware
+	app.Use(middleware.LoggingMiddleware())
+	
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: config.CORSAllowedOrigins,
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
@@ -31,7 +45,7 @@ func NewServer() (*fiber.App, *sync.WaitGroup) {
 
 	var wg sync.WaitGroup
 
-	registerRoutes(app, database.DB, &config, &wg)
+	registerRoutes(app, db, &config, &wg)
 
 	return app, &wg
 }

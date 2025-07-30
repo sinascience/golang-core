@@ -9,6 +9,7 @@ import (
 	"time"
 	"venturo-core/configs"
 	"venturo-core/internal/model"
+	"venturo-core/pkg/logger"
 	"venturo-core/pkg/utils"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,13 +19,18 @@ import (
 )
 
 type AuthService struct {
-	db   *gorm.DB
-	conf *configs.Config
+	db            *gorm.DB
+	conf          *configs.Config
+	securityLogger *logger.SecurityLogger
 }
 
 // NewAuthService creates a new auth service.
 func NewAuthService(db *gorm.DB, conf *configs.Config) *AuthService {
-	return &AuthService{db: db, conf: conf}
+	return &AuthService{
+		db:            db,
+		conf:          conf,
+		securityLogger: logger.NewSecurityLogger(),
+	}
 }
 
 // Register creates a new user.
@@ -49,9 +55,12 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 	}
 
 	// Save user to the database
-	if err := newUser.Save(s.db.WithContext(ctx)); err != nil {
+	if err := newUser.Save(ctx, s.db); err != nil {
 		return err
 	}
+
+	// Log successful registration
+	s.securityLogger.LogUserRegistration(ctx, newUser.ID, email, getIPFromContext(ctx))
 
 	return nil
 }
@@ -61,11 +70,13 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (map[st
 	// Find user by email
 	var user model.User
 	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+		s.securityLogger.LogFailedLogin(ctx, email, getIPFromContext(ctx), "user not found")
 		return nil, errors.New("invalid credentials")
 	}
 
 	// Compare password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		s.securityLogger.LogFailedLogin(ctx, email, getIPFromContext(ctx), "invalid password")
 		return nil, errors.New("invalid credentials")
 	}
 
@@ -91,9 +102,12 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (map[st
 		Token:     hashedRefreshToken, // Save the SHA-256 hash
 		ExpiresAt: time.Now().Add(s.conf.JWTRefreshTokenExpiresIn),
 	}
-	if err := refreshTokenRecord.Create(s.db); err != nil {
+	if err := refreshTokenRecord.Create(ctx, s.db); err != nil {
 		return nil, errors.New("could not save session")
 	}
+
+	// Log successful login
+	s.securityLogger.LogSuccessfulLogin(ctx, user.ID, email, getIPFromContext(ctx))
 
 	// 4. Return both tokens to the handler
 	tokens := map[string]string{
@@ -127,33 +141,21 @@ func (s *AuthService) RefreshToken(ctx context.Context, tokenString string) (map
 		return nil, errors.New("invalid user id in token")
 	}
 
-	// 2. Find all refresh tokens for the user
-	var rtModel model.RefreshToken
-	tokenRecords, err := rtModel.FindAllByUserID(s.db, userID)
-	if err != nil || len(tokenRecords) == 0 {
-		return nil, errors.New("session not found, please log in again")
-	}
-
-	// 3. Find the matching token and validate it
+	// 2. Hash the incoming token and find it directly in the database
 	incomingTokenHasher := sha256.New()
 	incomingTokenHasher.Write([]byte(tokenString))
 	incomingTokenHash := hex.EncodeToString(incomingTokenHasher.Sum(nil))
 
-	var currentTokenRecord *model.RefreshToken
-	for i, record := range tokenRecords {
-		// Compare the hashes directly
-		if record.Token == incomingTokenHash {
-			currentTokenRecord = &tokenRecords[i]
-			break
-		}
-	}
-
-	if currentTokenRecord == nil {
+	// 3. Find the specific token in one query
+	var rtModel model.RefreshToken
+	currentTokenRecord, err := rtModel.FindByUserIDAndToken(ctx, s.db, userID, incomingTokenHash)
+	if err != nil {
+		s.securityLogger.LogTokenRefresh(ctx, userID, getIPFromContext(ctx), false)
 		return nil, errors.New("invalid refresh token, please log in again")
 	}
 
 	// 4. (Token Rotation) Delete the used token
-	if err := currentTokenRecord.Delete(s.db); err != nil {
+	if err := currentTokenRecord.Delete(ctx, s.db); err != nil {
 		slog.Error("failed to delete used refresh token", "error", err)
 	}
 
@@ -168,16 +170,22 @@ func (s *AuthService) RefreshToken(ctx context.Context, tokenString string) (map
 		return nil, errors.New("could not generate refresh token")
 	}
 
-	// 6. Save the new refresh token
-	hashedRefreshToken, _ := bcrypt.GenerateFromPassword([]byte(newRefreshToken), bcrypt.DefaultCost)
+	// 6. Save the new refresh token (use SHA-256 for consistency)
+	newTokenHasher := sha256.New()
+	newTokenHasher.Write([]byte(newRefreshToken))
+	hashedNewRefreshToken := hex.EncodeToString(newTokenHasher.Sum(nil))
+	
 	newRefreshTokenRecord := model.RefreshToken{
 		UserID:    userID,
-		Token:     string(hashedRefreshToken),
+		Token:     hashedNewRefreshToken,
 		ExpiresAt: time.Now().Add(s.conf.JWTRefreshTokenExpiresIn),
 	}
-	if err := newRefreshTokenRecord.Create(s.db); err != nil {
+	if err := newRefreshTokenRecord.Create(ctx, s.db); err != nil {
 		return nil, errors.New("could not save new session")
 	}
+
+	// Log successful token refresh
+	s.securityLogger.LogTokenRefresh(ctx, userID, getIPFromContext(ctx), true)
 
 	// 7. Return the new tokens
 	tokens := map[string]string{
@@ -186,4 +194,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, tokenString string) (map
 	}
 
 	return tokens, nil
+}
+
+// getIPFromContext extracts IP address from context (set by middleware)
+func getIPFromContext(ctx context.Context) string {
+	if ip := ctx.Value("client_ip"); ip != nil {
+		return ip.(string)
+	}
+	return "unknown"
 }

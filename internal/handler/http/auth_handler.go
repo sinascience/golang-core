@@ -27,8 +27,8 @@ type RegisterPayload struct {
 }
 
 type LoginPayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=1"`
 }
 
 type RefreshTokenPayload struct {
@@ -85,6 +85,11 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(payload); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
+	}
+
+	// Validate the login payload
+	if errs := validator.ValidateStruct(payload); errs != nil {
+		return response.ValidationError(c, errs)
 	}
 
 	tokens, err := h.authService.Login(c.Context(), payload.Email, payload.Password)

@@ -28,10 +28,11 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 
 	// --- Setups ---
 	authMiddleware := middleware.NewAuthMiddleware(conf.JWTAccessSecret)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(10) // 10 requests per minute
 
 	// --- Setup services ---
 	authService := service.NewAuthService(db, conf)
-	userService := service.NewUserService(db, wg)
+	userService := service.NewUserService(db, conf.StorageBucketName, wg)
 	postService := service.NewPostService(db)
 
 	// --- Setup handlers ---
@@ -39,10 +40,10 @@ func registerRoutes(app *fiber.App, db *gorm.DB, conf *configs.Config, wg *sync.
 	userHandler := http.NewUserHandler(userService)
 	postHandler := http.NewPostHandler(postService)
 
-	// --- Auth routes ---
-	api.Post("/register", authHandler.Register)
-	api.Post("/login", authHandler.Login)
-	api.Post("/refresh", authHandler.RefreshToken)
+	// --- Auth routes (with rate limiting) ---
+	api.Post("/register", rateLimitMiddleware, authHandler.Register)
+	api.Post("/login", rateLimitMiddleware, authHandler.Login)
+	api.Post("/refresh", rateLimitMiddleware, authHandler.RefreshToken)
 
 	// --- User routes ---
 	api.Get("/profile", authMiddleware, userHandler.GetProfile)
