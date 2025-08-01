@@ -157,13 +157,15 @@ func (s *AuthService) CreateToken(ctx context.Context, access_token, refreshToke
 	// Check by user ID
 	var existingToken model.Token
 	if err := s.db.WithContext(ctx).Where("user_id = ?", userIdUUID).First(&existingToken).Error; err == nil {
-		// Update token
+		// Update both access_token and refresh_token
 		existingToken.Token = access_token
+		existingToken.RefreshToken = refreshToken
 		if err := existingToken.Save(s.db); err != nil {
 			return err
 		}
-		return errors.New("token has updated")
+		return nil
 	}
+
 
 	// Create new token
 	tokenInput := model.Token{

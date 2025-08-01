@@ -46,6 +46,23 @@ type RefreshTokenPayload struct {
 // @Failure      400      {object}  response.ApiResponse "Bad Request - Invalid input"
 // @Failure      500      {object}  response.ApiResponse "Internal Server Error"
 // @Router       /register [post]
+
+/**
+@api {post} /api/v1/register User Register
+@apiDescription Creates a new user account with the provided details.
+@apiName Register
+@apiGroup Auth
+
+@apiBody {String} name Nama Penggguna
+@apiBody {String} email Email pengguna
+@apiBody {String} password Password pengguna
+
+@apiSuccess {String} Message Success Message
+@apiSuccessExample {json} Success-Response:
+  {
+    "message" : "User registered successfully"
+  }
+*/
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	payload := new(RegisterPayload)
 
@@ -80,6 +97,24 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 // @Failure      400      {object}  response.ApiResponse "Bad Request - Cannot parse JSON"
 // @Failure      401      {object}  response.ApiResponse "Unauthorized - Invalid credentials"
 // @Router       /login [post]
+
+/**
+@api {post} /api/v1/login User Login
+@apiDescription Authenticates a user and return a JWT token.
+@apiName Login
+@apiGroup Auth
+
+@apiBody {String} email Email pengguna
+@apiBody {String} password Password pengguna
+
+@apiSuccess {String} access_token Token JWT
+@apiSuccess {String} refresh_token Token JWT
+@apiSuccessExample {json} Success-Response:
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR...",
+	"refresh_token" : "eyJhbGciOiJIUzI1NiIsInR..."
+  }
+*/
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	payload := new(LoginPayload)
 
@@ -110,6 +145,22 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Failure      400      {object}  response.ApiResponse "Bad Request - Cannot parse JSON"
 // @Failure      401      {object}  response.ApiResponse "Unauthorized - Invalid credentials"
 // @Router       /refresh [post]
+
+/**
+@api {post} /api/v1/refresh Refresh Token
+@apiDescription Refresh a user's JWT Token.
+@apiName Refresh Token
+@apiGroup Auth
+
+@apiBody {String} refresh-token Refresh Token Pengguna
+
+@apiSuccess {String} access_token New Aceess Token from Refresh Token.
+@apiSuccessExample {json} Success-Response:
+  HTTP/1.1 200 OK
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR..."
+  }
+*/
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	payload := new(RefreshTokenPayload)
 

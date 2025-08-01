@@ -8,6 +8,7 @@ import (
 	_ "venturo-core/docs"
 	"venturo-core/internal/server"
 	"venturo-core/pkg/logger"
+	// "github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 // @title           Venturo Golang Core API
@@ -37,6 +38,12 @@ func main() {
 	// Create a channel to listen for OS signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	// app.Use(cors.New(cors.Config{
+    //     AllowOrigins: "http://localhost:5173",
+    //     AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	// 	AllowCredentials: true,
+    // }))
 
 	go func() {
 		slog.Info("Server is starting", "port", 3000)

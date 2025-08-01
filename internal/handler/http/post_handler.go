@@ -54,6 +54,48 @@ type CreatePostPayload struct {
 // @Failure      400      {object}  response.ApiResponse "Bad Request"
 // @Failure      401      {object}  response.ApiResponse "Unauthorized"
 // @Router       /posts [post]
+
+/**
+@api {post} /api/v1/posts Create Post
+@apiName CreatePost
+@apiGroup Posts
+@apiDescription Creates a new post for the authenticated user.
+@apiHeader {string} Authorization "Bearer <access_token>"
+
+@apiBody {String} title Post title
+@apiBody {String} body Post body
+
+@apiSuccess {Object} data Data object
+@apiSuccess {String} data.author Data object author
+@apiSuccess {String} data.body Data body
+@apiSuccess {String} data.created_at Data created_at
+@apiSuccess {string} data.id Data id
+@apiSuccess {String} data.title Data title
+@apiSuccess {String} data.updated_at Data updated_at
+@apiSuccess {string} data.user_id Data user_id
+
+@apiSuccess {String} errors Errors
+@apiSuccess {Object} meta Meta
+@apiSuccess {Number} status_code Status Code
+
+@apiSuccessExample {json} Success-Response:
+{
+	"data": [{
+		"author": "John Doe",
+		"body": "Hello, world!",
+		"created_at": "2023-08-01T12:34:56Z",
+		"id": "1",
+		"title": "My First Post",
+		"updated_at": "2023-08-01T12:34:56Z",
+		"user_id": "123e4567-e89b-12d3-a456-426655440000"
+	}],
+	"errors": null,
+	"meta": {
+		
+	},
+	"status_code": 201
+}
+*/
 func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 	// Get user ID from the JWT middleware
 	userID, ok := c.Locals("current_user_id").(uuid.UUID)
@@ -88,6 +130,48 @@ func (h *PostHandler) CreatePost(c *fiber.Ctx) error {
 // @Success      200    {object}  response.ApiResponse{data=[]model.Post} "Successfully retrieved posts"
 // @Failure      500    {object}  response.ApiResponse "Internal Server Error"
 // @Router       /posts [get]
+
+/**
+@api {get} /api/v1/posts Get All Posts
+@apiName GetAllPosts
+@apiGroup Posts
+@apiDescription Retrieves a paginated list of all posts.
+
+@apiSuccess {Object} data Data object
+@apiSuccess {String} data.author Data object author
+@apiSuccess {String} data.body Data body
+@apiSuccess {String} data.created_at Data created_at
+@apiSuccess {string} data.id Data id
+@apiSuccess {String} data.title Data title
+@apiSuccess {String} data.updated_at Data updated_at
+@apiSuccess {string} data.user_id Data user_id
+
+@apiSuccess {String} errors Errors
+@apiSuccess {String} meta Meta
+@apiSuccess {Number} status_code Status Code
+
+@apiSuccessExample {json} Success-Response:
+{
+	"data": [
+		{
+			"author": "John Doe",
+			"body": "Hello, world!",
+			"created_at": "2023-08-01T12:34:56Z",
+			"id": "1",
+			"title": "My First Post",
+			"updated_at": "2023-08-01T12:34:56Z",
+			"user_id": "123e4567-e89b-12d3-a456-426655440000"
+		}
+	],
+	"errors": null,
+	"meta": {
+		"page": 1,
+		"limit": 10,
+		"total": 100
+	},
+	"status_code": 200
+}
+*/
 func (h *PostHandler) GetAllPosts(c *fiber.Ctx) error {
 	// 1. Parse query parameters for pagination
 	page, err := strconv.Atoi(c.Query("page", "1"))
@@ -121,6 +205,43 @@ func (h *PostHandler) GetAllPosts(c *fiber.Ctx) error {
 // @Success      200  {object}  response.ApiResponse{data=model.Post} "Successfully retrieved post"
 // @Failure      404  {object}  response.ApiResponse "Post not found"
 // @Router       /posts/{id} [get]
+
+/**
+@api {get} /api/v1/posts/:id Get Post by ID
+@apiName GetPostByID
+@apiGroup Posts
+@apiDescription Retrieves a single post by its unique ID.
+@apiParam {String} id Post ID
+
+@apiSuccess {Object} data Data object
+@apiSuccess {String} data.author Data object author
+@apiSuccess {String} data.body Data body
+@apiSuccess {String} data.created_at Data created_at
+@apiSuccess {string} data.id Data id
+@apiSuccess {String} data.title Data title
+@apiSuccess {String} data.updated_at Data updated_at
+@apiSuccess {string} data.user_id Data user_id
+
+@apiSuccess {String} errors Errors
+@apiSuccess {Object} meta Meta
+@apiSuccess {Number} status_code Status Code
+
+@apiSuccessExample {json} Success-Response:
+{
+	"data": {
+		"author": "John Doe",
+		"body": "Hello, world!",
+		"created_at": "2023-08-01T12:34:56Z",
+		"id": "1",
+		"title": "My First Post",
+		"updated_at": "2023-08-01T12:34:56Z",
+		"user_id": "123e4567-e89b-12d3-a456-426655440000"
+	},
+	"errors": null,
+	"meta": {},
+	"status_code": 200
+}
+*/
 func (h *PostHandler) GetPostByID(c *fiber.Ctx) error {
 	// Get ID from URL parameter
 	idParam := c.Params("id")
@@ -149,6 +270,29 @@ func (h *PostHandler) GetPostByID(c *fiber.Ctx) error {
 // @Failure      403      {object}  response.ApiResponse "Forbidden"
 // @Failure      404      {object}  response.ApiResponse "Post not found"
 // @Router       /posts/{id} [delete]
+
+/**
+@api {delete} /api/v1/posts/:id Delete Post
+@apiName DeletePost
+@apiGroup Posts
+@apiDescription Deletes a post. Only the author can delete their post.
+@apiParam {String} id Post ID
+
+@apiHeader {string} Authorization "Bearer <access_token>"
+
+@apiSuccess {String} data Data
+@apiSuccess {String} errors Errors
+@apiSuccess {Object} meta Meta
+@apiSuccess {Number} status_code Status Code
+
+@apiSuccessExample {json} Success-Response:
+{
+	"data": null,
+	"errors": null,
+	"meta": {},
+	"status_code": 200
+}
+*/
 func (h *PostHandler) DeletePost(c *fiber.Ctx) error {
 	// Get post ID from URL parameter
 	postID, err := uuid.Parse(c.Params("id"))
@@ -192,6 +336,48 @@ func (h *PostHandler) DeletePost(c *fiber.Ctx) error {
 // @Failure      403      {object}  response.ApiResponse "Forbidden"
 // @Failure      404      {object}  response.ApiResponse "Post not found"
 // @Router       /posts/{id} [put]
+
+/**
+@api {put} /api/v1/posts/:id Update Post
+@apiName UpdatePost
+@apiGroup Posts
+@apiDescription Updates a post. Only the author can update their post.
+@apiParam {String} id Post ID
+
+@apiHeader {string} Authorization "Bearer <access_token>"
+
+@apiBody {String} title Post title
+@apiBody {String} body Post body
+
+@apiSuccess {String} data Data
+@apiSuccess {String} data.author Data object author
+@apiSuccess {String} data.body Data body
+@apiSuccess {String} data.created_at Data created_at
+@apiSuccess {string} data.id Data id
+@apiSuccess {String} data.title Data title
+@apiSuccess {String} data.updated_at Data updated_at
+@apiSuccess {string} data.user_id Data user_id
+
+@apiSuccess {String} errors Errors
+@apiSuccess {Object} meta Meta
+@apiSuccess {Number} status_code Status Code
+
+@apiSuccessExample {json} Success-Response:
+{
+	"data": [{
+		"author": "John Doe",
+		"body": "Hello, world!",
+		"created_at": "2023-08-01T12:34:56Z",
+		"id": "1",
+		"title": "My First Post",
+		"updated_at": "2023-08-01T12:34:56Z",
+		"user_id": "123e4567-e89b-12d3-a456-426655440000"
+	}],
+	"errors": null,
+	"meta": {},
+	"status_code": 200
+}
+*/
 func (h *PostHandler) UpdatePost(c *fiber.Ctx) error {
 	// Get post ID from URL parameter
 	postID, err := uuid.Parse(c.Params("id"))

@@ -46,6 +46,78 @@ type CreateTransactionPayload struct {
 // @Failure      400      {object}  response.ApiResponse "Bad Request"
 // @Failure      401      {object}  response.ApiResponse "Unauthorized"
 // @Router       /transactions [post]
+
+/**
+@api {post} /transactions Create a Transaction
+@apiName CreateTransaction
+@apiGroup Transactions
+@apiDescription Creates a transaction with multiple detail items for the authenticated user.
+
+@apiHeader {string} Authorization "Bearer <access_token>"
+
+@apiBody {UUID} outlet_id The ID of the outlet
+@apiBody {Object[]} items An array of items
+@apiBody {UUID} items.product_id The ID of the product
+@apiBody {string} items.product_name The name of the product
+@apiBody {number} items.category The category of the product
+@apiBody {number} items.qty The quantity of the product
+@apiBody {number} items.price The price of the product
+@apiBody {string} [note] A note about the transaction
+
+@apiSuccess {UUID} id The ID of the created transaction
+@apiSuccess {UUID} outlet_id The ID of the outlet
+@apiSuccess {Object[]} items An array of items
+@apiSuccess {UUID} items.product_id The ID of the product
+@apiSuccess {string} items.product_name The name of the product
+@apiSuccess {number} items.category The category of the product
+@apiSuccess {number} items.qty The quantity of the product
+@apiSuccess {number} items.price The price of the product
+@apiSuccess {string} [note] A note about the transaction
+
+@apiSuccessExample {json} Success-Response:
+{
+	"status_code": 201,
+    "data": {
+        "ID": "6684001c-c4f0-43d2-8749-f4622a8ad931",
+        "UserID": "5b5aee18-95c3-436c-b8b9-b66fe82c1480",
+        "OutletID": "32b4ba07-61ee-11f0-b1d6-9c12216b8fcb",
+        "InvoiceCode": "INV-2025-6529",
+        "Total": 15000,
+        "is_paid": false,
+        "Note": "INV INV-2025-6529 includes: BUKU. Additional notes: Pesanan untuk pelanggan reguler",
+        "CreatedAt": "2025-08-01T13:48:28.471+07:00",
+        "UpdatedAt": "2025-08-01T13:48:28.471+07:00",
+        "User": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "name": "",
+            "email": "",
+            "image_status": "",
+            "created_at": "0001-01-01T00:00:00Z",
+            "updated_at": "0001-01-01T00:00:00Z"
+        },
+        "TransactionDetails": [
+            {
+                "ID": "5b719b68-1450-4c1e-8578-702322d1d479",
+                "TransactionID": "6684001c-c4f0-43d2-8749-f4622a8ad931",
+                "ProductID": "30d7404c-47cb-440b-be33-447e10211b41",
+                "ProductName": "BUKU",
+                "Category": 1,
+                "Qty": 1,
+                "Price": 15000,
+                "CreatedAt": "2025-08-01T13:48:28.487+07:00",
+                "UpdatedAt": "2025-08-01T13:48:28.487+07:00"
+            }
+        ],
+        "Outlet": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "name": "",
+            "created_at": "0001-01-01T00:00:00Z",
+            "updated_at": "0001-01-01T00:00:00Z",
+            "Transactions": null
+        }
+    }
+}
+*/
 func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	userID, ok := c.Locals("current_user_id").(uuid.UUID)
 	if !ok {
@@ -103,6 +175,21 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 // @Failure      401  {object}  response.ApiResponse "Unauthorized"
 // @Failure      404  {object}  response.ApiResponse "Transaction not found"
 // @Router       /transactions/{id}/pay [post]
+
+/**
+@api {post} /transactions/:id/pay Pay for a Transaction
+@apiName PayForTransaction
+@apiGroup Transactions
+@apiParam {uuid} id Transaction ID
+@apiHeader {string} Authorization "Bearer <access_token>"
+@apiSuccess {string} message "Transaction marked as paid. Report is updating."
+
+@apiSuccessExample {json} Success-Response:
+{
+	"status_code" : 200,
+	"message" : "Transaction marked as paid. Report is updating."
+}
+*/
 func (h *TransactionHandler) MarkAsPaid(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	transactionID, err := uuid.Parse(idParam)
