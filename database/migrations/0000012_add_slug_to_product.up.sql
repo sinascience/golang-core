@@ -1,0 +1,2 @@
+ALTER TABLE `products`
+ADD COLUMN `slug` VARCHAR(255) NOT NULL UNIQUE AFTER `name`;

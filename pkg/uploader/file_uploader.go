@@ -57,11 +57,11 @@ func (u *FileUploader) UploadAsync(
 	onCloudUploadSuccess()
 
 	// --- Step 3: Cleanup ---
-	if err := os.Remove(localFilePath); err != nil {
-		slog.Error("Error cleaning up temp file", "file", objectName, "error", err)
-	} else {
-		slog.Info("Successfully cleaned up temp file", "file", objectName)
-	}
+	// if err := os.Remove(localFilePath); err != nil {
+	// 	slog.Error("Error cleaning up temp file", "file", objectName, "error", err)
+	// } else {
+	// 	slog.Info("Successfully cleaned up temp file", "file", objectName)
+	// }
 }
 
 // saveToLocal is a helper function containing the file-saving logic.

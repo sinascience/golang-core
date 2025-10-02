@@ -3,10 +3,13 @@ package http
 import (
 	"errors"
 	"strconv"
+	"venturo-core/internal/model"
 	"venturo-core/internal/service"
 	"venturo-core/pkg/response"
+	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type ProductHandler struct {
@@ -15,6 +18,39 @@ type ProductHandler struct {
 
 func NewProductHandler(s *service.ProductService) *ProductHandler {
 	return &ProductHandler{productService: s}
+}
+
+// GetAllProducts returns a list of all products.
+func (h *ProductHandler) GetAllProducts(c *fiber.Ctx) error {
+	products, err := h.productService.GetAllProducts()
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, err)
+	}
+	return response.Success(c, fiber.StatusOK, products)
+}
+
+
+// GetProductByID returns a single product by its ID.
+func (h *ProductHandler) GetProductByID(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, errors.New("invalid ID format"))
+	}
+	product, err := h.productService.FindProductByID(id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, errors.New("product not found"))
+	}
+	return response.Success(c, fiber.StatusOK, product)
+}
+
+// GetProductBySlug return a single product by its Slug.
+func (h *ProductHandler) GetProductBySlug(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	product, err := h.productService.FindProductBySLug(slug)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, errors.New("product not found"))
+	}
+	return response.Success(c, fiber.StatusOK, product)
 }
 
 // CreateProduct handles the multipart/form-data request to create a product.
@@ -46,15 +82,23 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("invalid price format"))
 	}
-	stock, err := strconv.Atoi(c.FormValue("stock"))
-	if err != nil {
-		return response.Error(c, fiber.StatusBadRequest, errors.New("invalid stock format"))
+	// stock, err := strconv.Atoi(c.FormValue("stock"))
+	// if err != nil {
+	// 	return response.Error(c, fiber.StatusBadRequest, errors.New("invalid stock format"))
+	// }
+
+	var productType []model.ProductType
+	if typeStr := c.FormValue("type"); typeStr != "" {
+		if err := json.Unmarshal([]byte(typeStr), &productType); err != nil {
+			return response.Error(c, fiber.StatusBadRequest, errors.New("invalid type format"))
+		}
 	}
 
 	input := service.CreateProductInput{
 		Name:  c.FormValue("name"),
 		Price: int32(price),
-		Stock: int16(stock),
+		// Stock: int16(stock),
+		Type : productType,
 	}
 
 	file, err := c.FormFile("image")

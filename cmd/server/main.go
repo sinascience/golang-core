@@ -39,11 +39,6 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	// app.Use(cors.New(cors.Config{
-    //     AllowOrigins: "http://localhost:5173",
-    //     AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-	// 	AllowCredentials: true,
-    // }))
 
 	go func() {
 		slog.Info("Server is starting", "port", 3000)

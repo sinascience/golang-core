@@ -77,10 +77,10 @@ func (s *PostService) UpdatePost(postID, userID uuid.UUID, newTitle, newBody str
 	post.Title = newTitle
 	post.Body = newBody
 
-	// Save the updated post
-	if err := post.Save(s.db); err != nil {
-		return nil, err
-	}
+	// Simpan perubahan tanpa mengubah user_id
+    if err := s.db.Model(&post).Select("Title", "Body").Updates(post).Error; err != nil {
+        return nil, err
+    }
 
 	return post, nil
 }

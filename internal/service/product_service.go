@@ -10,7 +10,9 @@ import (
 	"venturo-core/internal/adapter/storage"
 	"venturo-core/internal/model"
 
+	"github.com/gosimple/slug"
 	"github.com/google/uuid"
+	"encoding/json"
 	"gorm.io/gorm"
 )
 
@@ -32,14 +34,46 @@ type CreateProductInput struct {
 	Price int32
 	Stock int16
 	Image *multipart.FileHeader
+	Type []model.ProductType
+}
+
+// GetAllProducts returns all products.
+func (s *ProductService) GetAllProducts() ([]model.Product, error) {
+	var products model.Product
+	return products.GetAll(s.db)
+}
+
+// FindProductBySlug returns a product by Slug.
+func (s *ProductService) FindProductBySLug(slug string) (*model.Product, error) {
+	var product model.Product
+	return product.FindBySlug(s.db, slug)
+}
+
+// FIndProductByID returns a product by ID.
+func (s *ProductService) FindProductByID(id uuid.UUID) (*model.Product, error) {
+	var product model.Product
+	return product.FindByID(s.db, id)
 }
 
 // CreateProduct creates a product and asynchronously uploads its image.
 func (s *ProductService) CreateProduct(ctx context.Context, input CreateProductInput) (*model.Product, error) {
+	// Count Total Stock by type stock
+	var totalStock int16
+	for _, t:= range input.Type {
+		totalStock += t.Stock
+	}
+	
+	typeJSON, err := json.Marshal(input.Type)
+	if err != nil {
+        return nil, err
+    }
+
 	product := model.Product{
 		Name:  input.Name,
 		Price: input.Price,
-		Stock: input.Stock,
+		Stock: totalStock,
+		Slug:  slug.Make(input.Name),
+		Type:  typeJSON,
 	}
 
 	// If an image is provided, prepare for upload.

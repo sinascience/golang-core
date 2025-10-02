@@ -70,7 +70,6 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	if err := c.BodyParser(payload); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, errors.New("cannot parse JSON"))
 	}
-
 	// Replace manual checks with a single call to the validator
 	if errs := validator.ValidateStruct(payload); errs != nil {
 		return response.ValidationError(c, errs)
@@ -156,7 +155,6 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 @apiSuccess {String} access_token New Aceess Token from Refresh Token.
 @apiSuccessExample {json} Success-Response:
-  HTTP/1.1 200 OK
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR..."
   }
